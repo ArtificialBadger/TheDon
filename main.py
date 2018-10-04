@@ -8,6 +8,8 @@ from discord.utils import get
 from tinydb.operations import delete
 import random
 import re
+import importlib
+import Config
 
 class User:
     def __init__(self, name, money):
@@ -29,9 +31,9 @@ class Line:
         self.locked = locked
 
 
-modlist = []
-whitelist = []
-app_secret = "NDg5NjE1NDkxMDc4MjkxNDU2.DntX6w.CHJnrwoNLpm971p5kkgBkESifRs"
+modlist = Config.modlist
+whitelist = Config.whitelist
+app_secret = Config.app_secret
 
 bot = commands.Bot(command_prefix='$')
 
@@ -558,6 +560,12 @@ async def nou(ctx, user: discord.Member = None):
 async def pinksock(ctx):
     emoji = get(bot.get_all_emojis(), name='pinksock')
     await bot.say(emoji)
+
+@bot.command(pass_context=True)
+async def free(ctx):
+    embed = discord.Embed()
+    embed.set_image(url='https://media.giphy.com/media/5wWf7GMbT1ZUGTDdTqM/giphy.gif')
+    await bot.say(embed=embed)
 
 bot.run(app_secret)
 
