@@ -450,21 +450,39 @@ async def betsFunc(ctx, user: discord.Member = None):
 
     await bot.say(embed=embed)
 
-async def overunder(ctx, bet, amount, ou):
-    line = lines.get(query.line.matches('^' + bet + '$', re.IGNORECASE))
+@bot.command(pass_context=True)
+async def bounty(ctx, user: discord.Member, amount):
+
+    user = users.get(query.name == str(user))
+
+    if not str(ctx.message.author) in modlist:
+        await bot.say("Only mods can award bounties")
+    elif user is None:
+        await bot.say("User is not registered in the system")
+    elif not amount.isdigit():
+        await bot.say("Bounty must be a positive integer")
+    elif int(amount) > 100:
+        await bot.say("Max bounty is 100 RAB")
+    else:
+        users.update({'money': (user['money'] + int(amount))}, query.name == user['name'])
+        await bot.say("{0} has been awarded a bounty of {1} RA Bucks for finding a bug!".format(user['name'], int(amount)))
+
+
+async def overunder(ctx, userLine, amount, ou):
+    line = lines.get(query.line.matches('^' + userLine + '$', re.IGNORECASE))
     user = users.get(query.name == str(ctx.message.author))
     previousBets = bets.search((query.user == str(ctx.message.author)))
 
     if previousBets is not None and len(previousBets) > 0:
         for previousBet in previousBets:
-            if previousBet['line'] == bet:
-                await bot.say("You already have a previous bet on {}".format(bet))
+            if previousBet['line'].lower() == userLine.lower():
+                await bot.say("You already have a previous bet on {}".format(userLine))
                 return
 
     if user is None:
         await bot.say("You are not registered")
     elif line is None:
-        await bot.say("{} is not an open line".format(bet))
+        await bot.say("{} is not an open line".format(userLine))
     elif str(ctx.message.author) == line['host']:
         await bot.say("You cannot bet on your own line")
     elif not amount.isdigit():
@@ -477,7 +495,7 @@ async def overunder(ctx, bet, amount, ou):
         house = users.get(query.name == "House")
         users.update({'money': (house['money'] + 10)}, query.name == "House")
 
-        dbBet = Bet(str(ctx.message.author), bet, ou, amount)
+        dbBet = Bet(str(ctx.message.author), userLine, ou, amount)
         bets.insert(vars(dbBet))
         if ou == 'over':
             embed = discord.Embed(title="Bet Made", description="Bet made by {}".format(ctx.message.author), color=0xff0000)
@@ -511,16 +529,16 @@ async def rand(ctx, amount="0"):
 
     # not own
     # not already bet upon
-    # not 1locked
+    # not locked
 
     myBets = bets.search(query.user == str(ctx.message.author))
-    myLines = list(map(lambda x: x['line'], myBets))
+    myLines = list(map(lambda x: x['line'].lower(), myBets))
     allLines = list(map(lambda x: x['line'], lines.search((query.locked == False) & (query.host != str(ctx.message.author)))))
 
     notMyLines = []
 
     for line in allLines:
-        if not line in myLines:
+        if not line.lower() in myLines:
             notMyLines.append(line)
 
     if len(notMyLines) > 0:
@@ -532,12 +550,12 @@ async def rand(ctx, amount="0"):
 
 
 @bot.command(pass_context=True)
-async def over(ctx, bet, amount):
-    await overunder(ctx, bet, amount, "over")
+async def over(ctx, userLine, amount):
+    await overunder(ctx, userLine, amount, "over")
 
 @bot.command(pass_context=True)
-async def under(ctx, bet, amount):
-    await overunder(ctx, bet, amount, "under")
+async def under(ctx, userLine, amount):
+    await overunder(ctx, userLine, amount, "under")
 
 @bot.command(pass_context=True)
 async def nou(ctx, user: discord.Member = None):
@@ -566,6 +584,26 @@ async def free(ctx):
     embed = discord.Embed()
     embed.set_image(url='https://media.giphy.com/media/5wWf7GMbT1ZUGTDdTqM/giphy.gif')
     await bot.say(embed=embed)
+
+@bot.command(pass_context=True)
+async def git(ctx):
+    await contributeFunc(ctx)
+
+@bot.command(pass_context=True)
+async def contribute(ctx):
+    await contributeFunc(ctx)
+
+@bot.command(pass_context=True)
+async def opensource(ctx):
+    await contributeFunc(ctx)
+
+@bot.command(pass_context=True)
+async def openSource(ctx):
+    await contributeFunc(ctx)
+
+async def contributeFunc(ctx):
+    await bot.say("The Don is now Open source")
+    await bot.say('https://github.com/ArtificialBadger/TheDon')
 
 bot.run(app_secret)
 
