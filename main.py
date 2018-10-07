@@ -107,7 +107,7 @@ async def purge(ctx, table):
         emoji = get(bot.get_all_emojis(), name='nou')
         await bot.say(emoji)
 
-async def houseLine(ctx, line, *, description):
+async def houseLine(ctx, line, description):
     activeLine = lines.get(query.line.matches('^' + line + '$', flags=re.IGNORECASE))
 
     if not activeLine is None:
@@ -121,18 +121,19 @@ async def houseLine(ctx, line, *, description):
         embed = discord.Embed(title="Line Opened", description="A new House Line has been opened", color=0xffffff)
         embed.add_field(name="Line", value=line)
         embed.add_field(name="Author", value="House")
-        embed.add_field(name="Description", value=description)
+        if not description == "":
+            embed.add_field(name="Description", value=description)
         await bot.say(embed=embed)
     else:
         await bot.say("Only trusted users can open a House Line")
 
 @bot.command(pass_context=True)
-async def house(ctx, line, *, description):
-    await houseLine(ctx, line, description=description)
+async def house(ctx, line, *, description=""):
+    await houseLine(ctx, line, description)
 
 @bot.command(pass_context=True, name="BurtReynolds")
 async def drive(ctx, *, description):
-    await houseLine(ctx, "Drive", description=description)
+    await houseLine(ctx, "Drive", description)
 
 @bot.command(pass_context=True)
 async def unlock(ctx, line):
@@ -211,11 +212,18 @@ async def ou(ctx, line, *, description):
         embed.add_field(name="Description", value=description)
         await bot.say(embed=embed)
 
-async def resolveLine(ctx, bet, result, owner, *, description=""):
-    embed = discord.Embed(title="Line Resolved", description="description", color=0xffffff)
+async def resolveLine(ctx, line, result, owner, description=""):
+    dbLine = lines.get(query.line.matches('^' + line + '$', re.IGNORECASE))
+    if dbLine is None:
+        await bot.say("Something has gone terribly wrong. Error code NL100")
 
-    winners = bets.search((query.bet == result) & (query.line.matches('^' + bet + '$', flags=re.IGNORECASE)))
-    losers = bets.search((query.bet != result) & (query.line.matches('^' + bet + '$', flags=re.IGNORECASE)))
+    embed = discord.Embed(title="Line Resolved - {0}".format(line), description=dbLine['description'], color=0xffffff)
+
+    if not description == "":
+        embed.add_field(name="Resolution Description", value=description)
+
+    winners = bets.search((query.bet == result) & (query.line.matches('^' + line + '$', flags=re.IGNORECASE)))
+    losers = bets.search((query.bet != result) & (query.line.matches('^' + line + '$', flags=re.IGNORECASE)))
     lostMoney = 0
     wonMoney = 0
 
@@ -251,40 +259,41 @@ async def resolveLine(ctx, bet, result, owner, *, description=""):
 
     if len(winners) == 0 and len(losers) == 0:
         await bot.say("There were no bets made on this line :(")
-
-    houseMoney = int(lostMoney*.7)
-    houseMoney -= int(wonMoney)
-    moneyForLineOpener = min(len(winners), len(losers)) * 2
-    moneyForLineOpener += int((lostMoney*.3))
-    lineOpener = users.get(query.name == owner['host'])
-    house = users.get(query.name == "House")
-    if lineOpener is not None:
-        newCash = lineOpener['money'] + moneyForLineOpener
-        embed.add_field(name="Host", value="For hosting, {0} has been awarded {1} RABucks".format(owner['host'], moneyForLineOpener))
-        users.update({'money': newCash}, query.name == owner['host'])
-
-    if houseMoney > 0:
-        embed.add_field(name="House", value="The house has gained {0} RABucks".format(houseMoney))
     else:
-        embed.add_field(name="House", value="The house has lost {0} RABucks".format(0 - houseMoney))
+        houseMoney = int(lostMoney*.7)
+        houseMoney -= int(wonMoney)
+        moneyForLineOpener = min(len(winners), len(losers)) * 2
+        moneyForLineOpener += int((lostMoney*.3))
+        lineOpener = users.get(query.name == owner['host'])
+        house = users.get(query.name == "House")
+        if lineOpener is not None:
+            newCash = lineOpener['money'] + moneyForLineOpener
+            embed.add_field(name="Host", value="For hosting, {0} has been awarded {1} RABucks".format(owner['host'], moneyForLineOpener))
+            users.update({'money': newCash}, query.name == owner['host'])
 
-    users.update({'money': (house['money'] + houseMoney)}, query.name == "House")
-    bets.remove(where('line').matches('^' + bet + '$', re.IGNORECASE))
-    lines.remove(where('line').matches('^' + bet + '$', re.IGNORECASE))
+        users.update({'money': (house['money'] + houseMoney)}, query.name == "House")
 
-    #pastBets.insert(bet)
+        if houseMoney > 0:
+            embed.add_field(name="House", value="The house has gained {0} RABucks".format(houseMoney))
+        else:
+            embed.add_field(name="House", value="The house has lost {0} RABucks".format(0 - houseMoney))
+        await bot.say(embed=embed)
 
-    await bot.say(embed=embed)
+    bets.remove(where('line').matches('^' + line + '$', re.IGNORECASE))
+    lines.remove(where('line').matches('^' + line + '$', re.IGNORECASE))
+
+    #pastBets.insert(line)
+
 
 @bot.command(pass_context=True)
-async def resolve(ctx, bet, result=""):
-    await resolveFunc(ctx, bet, result)
+async def resolve(ctx, bet, result="", *, description=""):
+    await resolveFunc(ctx, bet, result, description)
 
 @bot.command(pass_context=True)
 async def wash(ctx, bet):
     await resolveFunc(ctx, bet, "wash")
 
-async def resolveFunc(ctx, bet, result=""):
+async def resolveFunc(ctx, bet, result="", description=""):
     owner = lines.get(query.line.matches('^' + bet + '$', re.IGNORECASE))
 
     if (owner is None):
@@ -296,7 +305,7 @@ async def resolveFunc(ctx, bet, result=""):
                 bets.remove(where('line').matches('^' + bet + '$', re.IGNORECASE))
                 lines.remove(where('line').matches('^' + bet + '$', re.IGNORECASE))
             elif result == "over" or result == "under":
-                await resolveLine(ctx, bet, result, owner)
+                await resolveLine(ctx, bet, result, owner, description)
             else:
                 await bot.say("Result must either be \"over\", \"under\" or \"wash\"")
         else:
@@ -310,7 +319,7 @@ async def resolveFunc(ctx, bet, result=""):
         bets.remove(where('line').matches('^' + bet + '$', re.IGNORECASE))
         lines.remove(where('line').matches('^' + bet + '$', re.IGNORECASE))
     else:
-        await resolveLine(ctx, bet, result, owner)
+        await resolveLine(ctx, bet, result, owner, description)
 
 @bot.command(pass_context=True, name="myBets")
 async def myBets1(ctx):
@@ -451,7 +460,7 @@ async def betsFunc(ctx, user: discord.Member = None):
     await bot.say(embed=embed)
 
 @bot.command(pass_context=True)
-async def bounty(ctx, user: discord.Member, amount):
+async def bounty(ctx, user: discord.Member, amount, *, description="finding a bug"):
 
     user = users.get(query.name == str(user))
 
@@ -465,7 +474,7 @@ async def bounty(ctx, user: discord.Member, amount):
         await bot.say("Max bounty is 100 RAB")
     else:
         users.update({'money': (user['money'] + int(amount))}, query.name == user['name'])
-        await bot.say("{0} has been awarded a bounty of {1} RA Bucks for finding a bug!".format(user['name'], int(amount)))
+        await bot.say("{0} has been awarded a bounty of {1} RA Bucks for {2}!".format(user['name'], int(amount), description))
 
 
 async def overunder(ctx, userLine, amount, ou):
@@ -504,12 +513,39 @@ async def overunder(ctx, userLine, amount, ou):
         else:
             embed = discord.Embed(title="Bet Made", description="Bet made by {}".format(ctx.message.author), color=0x00ff00)
         embed.add_field(name="Line", value=line['line'])
-        embed.add_field(name="description", value=line['description'])
+        if not line['description'] == "":
+            embed.add_field(name="description", value=line['description'])
         embed.add_field(name="Position", value=ou)
         embed.add_field(name="Amount", value=amount)
         embed.set_footer(text="On Wisconsin")
         embed.set_author(name=line['host'])
         await bot.say(embed=embed)
+
+@bot.command(pass_context=True)
+async def cancel(ctx, userLine):
+
+    line = lines.get(query.line.matches('^' + userLine + '$', re.IGNORECASE))
+    user = users.get(query.name == str(ctx.message.author))
+    bet = bets.get((query.user == str(ctx.message.author)) & (query.line.matches('^' + userLine + '$', re.IGNORECASE)))
+
+    if user is None:
+        await bot.say("You are not registered")
+    elif line is None:
+        await bot.say("{} is not an open line".format(userLine))
+    elif bet is None:
+        await bot.say("You do not have a bet on {}".format(line['line']))
+    elif line['locked']:
+        await bot.say("The betting is locked for {}".format(line['line']))
+    else:
+        #embed = discord.Embed(title="Bet Cancelled", color=0xffffff)
+        #embed.add_field(name="Line", value=line['line'])
+        #if not line['description'] == "":
+        #    embed.add_field(name="description", value=line['description'])
+        #embed.set_author(name=str(ctx.message.author))
+
+        bets.remove((query.user == str(ctx.message.author)) & (query.line.matches('^' + userLine + '$', re.IGNORECASE)))
+
+        await bot.say("{0} has cancelled their bet on {1}".format(str(ctx.message.author), line['line']))
 
 @bot.command(pass_context=True)
 async def rand(ctx, amount="0"):
