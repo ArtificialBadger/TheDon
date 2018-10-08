@@ -114,7 +114,7 @@ async def houseLine(ctx, line, description):
         await bot.say("Line cannot be opened. There is already an open line with the same name.")
     elif str(ctx.message.author) in whitelist:
         house = users.get(query.name == "House")
-        users.update({'money': (house['money'] + 10)}, query.name == "House")
+        users.update({'money': (house['money'] + 25)}, query.name == "House")
 
         dbLine = Line("House", line, description)
         lines.insert(vars(dbLine))
@@ -202,7 +202,7 @@ async def ou(ctx, line, *, description):
         await bot.say("Line cannot be opened. There is already an open line with the same name.")
     else:
         house = users.get(query.name == "House")
-        users.update({'money': (house['money'] + 5)}, query.name == "House")
+        users.update({'money': (house['money'] + 25)}, query.name == "House")
 
         dbLine = Line(str(ctx.message.author), line, description, False)
         lines.insert(vars(dbLine))
@@ -262,7 +262,8 @@ async def resolveLine(ctx, line, result, owner, description=""):
     else:
         houseMoney = int(lostMoney*.7)
         houseMoney -= int(wonMoney)
-        moneyForLineOpener = min(len(winners), len(losers)) * 2
+        houseMoney += 50
+        moneyForLineOpener = min(len(winners), len(losers)) * 5
         moneyForLineOpener += int((lostMoney*.3))
         lineOpener = users.get(query.name == owner['host'])
         house = users.get(query.name == "House")
@@ -502,7 +503,7 @@ async def overunder(ctx, userLine, amount, ou):
         await bot.say("The betting is locked for {}".format(line['line']))
     else:
         house = users.get(query.name == "House")
-        users.update({'money': (house['money'] + 10)}, query.name == "House")
+        users.update({'money': (house['money'] + 25)}, query.name == "House")
 
         dbBet = Bet(str(ctx.message.author), userLine, ou, amount)
         bets.insert(vars(dbBet))
@@ -548,7 +549,7 @@ async def cancel(ctx, userLine):
         await bot.say("{0} has cancelled their bet on {1}".format(str(ctx.message.author), line['line']))
 
 @bot.command(pass_context=True)
-async def rand(ctx, amount="0"):
+async def rand(ctx, amount="0", picked_line_name=""):
 
     if amount == "0":
         amount = str(random.randint(1,101))
@@ -580,10 +581,16 @@ async def rand(ctx, amount="0"):
     if len(notMyLines) > 0:
         randomLine = random.choice(notMyLines)
         randomPosition = random.choice(["over", "under"])
-        await overunder(ctx, randomLine, amount, randomPosition)
     else:
         await bot.say("There are no eligible lines for you to bet on")
+        return;
 
+    if picked_line_name == "":
+        await overunder(ctx, randomLine, amount, randomPosition)
+    elif not picked_line_name.lower() in list(map(lambda x: x.lower(), notMyLines)):
+        await bot.say("{} is not an eligible line".format(picked_line_name))
+    else:
+        await overunder(ctx, picked_line_name, amount, randomPosition)
 
 @bot.command(pass_context=True)
 async def over(ctx, userLine, amount):
