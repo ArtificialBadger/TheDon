@@ -661,8 +661,21 @@ async def RAbronze(ctx):
     await bronzeFunc(ctx)
 
 async def bronzeFunc(ctx):
-    embed = discord.Embed()
+    embed = discord.Embed(color=0xCD7F32)
     embed.set_image(url='https://i.imgur.com/XznfKMo.png')
+    await bot.say(embed=embed)
+
+@bot.command(pass_context=True)
+async def silver(ctx):
+    await silverFunc(ctx)
+
+@bot.command(pass_context=True)
+async def RAsilver(ctx):
+    await silverFunc(ctx)
+
+async def silverFunc(ctx):
+    embed = discord.Embed(color=0xc0c0c0)
+    embed.set_image(url='https://i.imgur.com/m1PudkI.jpg')
     await bot.say(embed=embed)
 
 @bot.command(pass_context=True)
