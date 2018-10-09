@@ -653,6 +653,19 @@ async def free(ctx):
     await bot.say(embed=embed)
 
 @bot.command(pass_context=True)
+async def bronze(ctx):
+    await bronzeFunc(ctx)
+
+@bot.command(pass_context=True)
+async def RAbronze(ctx):
+    await bronzeFunc(ctx)
+
+async def bronzeFunc(ctx):
+    embed = discord.Embed()
+    embed.set_image(url='https://i.imgur.com/XznfKMo.png')
+    await bot.say(embed=embed)
+
+@bot.command(pass_context=True)
 async def git(ctx):
     await contributeFunc(ctx)
 
