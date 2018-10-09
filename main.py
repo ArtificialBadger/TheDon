@@ -478,6 +478,30 @@ async def bounty(ctx, user: discord.Member, amount, *, description="finding a bu
         await bot.say("{0} has been awarded a bounty of {1} RA Bucks for {2}!".format(user['name'], int(amount), description))
 
 
+@bot.command(pass_context=True)
+async def adjust(ctx, user: discord.Member, amount):
+
+    user = users.get(query.name == str(user))
+
+    if not str(ctx.message.author) in modlist:
+        await bot.say("Only mods can award bounties")
+    elif user is None:
+        await bot.say("User is not registered in the system")
+    elif not is_integer(amount):
+        await bot.say("The entered number is not an integer")
+    elif int(amount) > 200 or int(amount) < -200:
+        await bot.say("Maximum adjustment is -200 to 200 RAB")
+    else:
+        users.update({'money': (user['money'] + int(amount))}, query.name == user['name'])
+        await bot.say("{0} has had their money adjusted by {1} from {2} to {3}".format(user['name'], int(amount), user['money'], user['money'] + int(amount)))
+
+def is_integer(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
 async def overunder(ctx, userLine, amount, ou):
     line = lines.get(query.line.matches('^' + userLine + '$', re.IGNORECASE))
     user = users.get(query.name == str(ctx.message.author))
