@@ -50,16 +50,16 @@ query = Query()
 async def on_ready():
     print("ready")
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="Sets a user up with {0} {1}".format(Config.starting_amount, Config.currency_code), description="Initializes a user with {0} {1} and allows them to begin placing bets. All users need to call this function before being able to place bets or open lines.".format(Config.starting_amount, Config.currency))
 async def ImALittleBitch(ctx):
     accounts = users.search(query.name == str(ctx.message.author))
     if len(accounts) > 0:
         await bot.say("You already have an account you dumbo")
     else:
-        users.insert(vars(User(str(ctx.message.author), 100)))
-        await bot.say("{0} has been given 100 RABucks".format(str(ctx.message.author)))
+        users.insert(vars(User(str(ctx.message.author), Config.starting_amount)))
+        await bot.say("{0} has been given {1} {2}".format(str(ctx.message.author), Config.starting_amount, Config.currency))
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def leaderboard(ctx):
     orderedUsers = []
     for user in users.all():
@@ -71,13 +71,13 @@ async def leaderboard(ctx):
         embed.add_field(name=user2.name, value=user2.money)
     await bot.say(embed=embed)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def money(ctx):
     user = users.get(query.name == str(ctx.message.author))
     if user is not None:
         await bot.say("You have {} RABucks".format(user['money']))
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def purgeAll(ctx):
     if (str(ctx.message.author) in modlist):
         users.purge()
@@ -89,7 +89,7 @@ async def purgeAll(ctx):
     else:
         await bot.say("You are not authorized to purge")
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def purge(ctx, table):
     if (str(ctx.message.author) in modlist):
         if (table == "users"):
@@ -127,15 +127,15 @@ async def houseLine(ctx, line, description):
     else:
         await bot.say("Only trusted users can open a House Line")
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def house(ctx, line, *, description=""):
     await houseLine(ctx, line, description)
 
-@bot.command(pass_context=True, name="BurtReynolds")
+@bot.command(pass_context=True, name="BurtReynolds", brief="", description="")
 async def drive(ctx, *, description):
     await houseLine(ctx, "Drive", description)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def unlock(ctx, line):
     hostLine = lines.get(query.line.matches(line, flags=re.IGNORECASE))
     host = hostLine['host']
@@ -190,11 +190,11 @@ async def lockLine(ctx, line):
         await bot.say("You cannot lock a line you did not open")
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def lock(ctx, line):
     await lockLine(ctx, line)
 
-@bot.command(pass_context=True,name="o/u")
+@bot.command(pass_context=True,name="o/u", brief="", description="")
 async def ou(ctx, line, *, description):
     activeLine = lines.get(query.line.matches('^' + line + '$', flags=re.IGNORECASE))
 
@@ -286,11 +286,11 @@ async def resolveLine(ctx, line, result, owner, description=""):
     #pastBets.insert(line)
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def resolve(ctx, bet, result="", *, description=""):
     await resolveFunc(ctx, bet, result, description)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def wash(ctx, bet):
     await resolveFunc(ctx, bet, "wash")
 
@@ -322,11 +322,11 @@ async def resolveFunc(ctx, bet, result="", description=""):
     else:
         await resolveLine(ctx, bet, result, owner, description)
 
-@bot.command(pass_context=True, name="myBets")
+@bot.command(pass_context=True, name="myBets", brief="", description="")
 async def myBets1(ctx):
     await myBetsFunc(ctx)
 
-@bot.command(pass_context=True, name="mybets")
+@bot.command(pass_context=True, name="mybets", brief="", description="")
 async def myBets2(ctx):
     await myBetsFunc(ctx)
 
@@ -388,15 +388,15 @@ async def myLinesFunc(ctx):
 
     await bot.say(embed=embed)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def myLines(ctx):
     await myLinesFunc(ctx)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def mylines(ctx):
     await myLinesFunc(ctx)
 
-@bot.command(pass_context=True, name="lines")
+@bot.command(pass_context=True, name="lines", brief="", description="")
 async def linesFunc(ctx):
     openLines = lines.search(query.locked == False)
     lockedLines = lines.search(query.locked == True)
@@ -410,7 +410,7 @@ async def linesFunc(ctx):
     embed.add_field(name="Locked Lines", value=formattedLockedLines)
     await bot.say(embed=embed)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def info(ctx, line):
     activeLine = lines.get(query.line.matches('^' + line + '$', re.IGNORECASE))
 
@@ -438,7 +438,7 @@ async def info(ctx, line):
     await bot.say(embed=embed)
 
 
-@bot.command(pass_context=True, name="bets")
+@bot.command(pass_context=True, name="bets", brief="", description="")
 async def betsFunc(ctx, user: discord.Member = None):
     embed = discord.Embed(title="Bets", description="All currently open bets", color=0xffffff)
     embed.set_footer(text="On Wisconsin")
@@ -460,7 +460,7 @@ async def betsFunc(ctx, user: discord.Member = None):
 
     await bot.say(embed=embed)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def bounty(ctx, user: discord.Member, amount, *, description="finding a bug"):
 
     user = users.get(query.name == str(user))
@@ -478,7 +478,7 @@ async def bounty(ctx, user: discord.Member, amount, *, description="finding a bu
         await bot.say("{0} has been awarded a bounty of {1} RA Bucks for {2}!".format(user['name'], int(amount), description))
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def adjust(ctx, user: discord.Member, amount):
 
     user = users.get(query.name == str(user))
@@ -546,7 +546,7 @@ async def overunder(ctx, userLine, amount, ou):
         embed.set_author(name=line['host'])
         await bot.say(embed=embed)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def cancel(ctx, userLine):
 
     line = lines.get(query.line.matches('^' + userLine + '$', re.IGNORECASE))
@@ -572,7 +572,7 @@ async def cancel(ctx, userLine):
 
         await bot.say("{0} has cancelled their bet on {1}".format(str(ctx.message.author), line['line']))
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def rand(ctx, amount="0", picked_line_name=""):
 
     if amount == "0":
@@ -616,15 +616,15 @@ async def rand(ctx, amount="0", picked_line_name=""):
     else:
         await overunder(ctx, picked_line_name, amount, randomPosition)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def over(ctx, userLine, amount):
     await overunder(ctx, userLine, amount, "over")
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def under(ctx, userLine, amount):
     await overunder(ctx, userLine, amount, "under")
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def nou(ctx, user: discord.Member = None):
     if (user is None):
         emoji = get(bot.get_all_emojis(), name='nou')
@@ -641,22 +641,22 @@ async def nou(ctx, user: discord.Member = None):
     else:
         await bot.say("{} No u".format(ctx.message.author.mention))
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def pinksock(ctx):
     emoji = get(bot.get_all_emojis(), name='pinksock')
     await bot.say(emoji)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def free(ctx):
     embed = discord.Embed()
     embed.set_image(url='https://media.giphy.com/media/5wWf7GMbT1ZUGTDdTqM/giphy.gif')
     await bot.say(embed=embed)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def bronze(ctx):
     await bronzeFunc(ctx)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def RAbronze(ctx):
     await bronzeFunc(ctx)
 
@@ -665,11 +665,11 @@ async def bronzeFunc(ctx):
     embed.set_image(url='https://i.imgur.com/XznfKMo.png')
     await bot.say(embed=embed)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def silver(ctx):
     await silverFunc(ctx)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="", description="")
 async def RAsilver(ctx):
     await silverFunc(ctx)
 
@@ -678,25 +678,24 @@ async def silverFunc(ctx):
     embed.set_image(url='https://i.imgur.com/m1PudkI.jpg')
     await bot.say(embed=embed)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="Information about the Open Source Repo", description="Shows information about The Don bot and links to the repo location")
 async def git(ctx):
     await contributeFunc(ctx)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="Information about the Open Source Repo", description="Shows information about The Don bot and links to the repo location")
 async def contribute(ctx):
     await contributeFunc(ctx)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="Information about the Open Source Repo", description="Shows information about The Don bot and links to the repo location")
 async def opensource(ctx):
     await contributeFunc(ctx)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="Information about the Open Source Repo", description="Shows information about The Don bot and links to the repo location")
 async def openSource(ctx):
     await contributeFunc(ctx)
 
 async def contributeFunc(ctx):
-    await bot.say("The Don is now Open source")
-    await bot.say('https://github.com/ArtificialBadger/TheDon')
+    await bot.say("The Don is now Open source\r\nhttps://github.com/ArtificialBadger/TheDon")
 
 bot.run(app_secret)
 
