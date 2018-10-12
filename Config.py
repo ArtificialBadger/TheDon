@@ -1,4 +1,6 @@
 modlist = []
 whitelist = []
 app_secret = ""
-test_secret = ""
+currency = ""
+currency_code = ""
+starting_amount = 100
