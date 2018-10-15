@@ -30,6 +30,22 @@ class Line:
         self.description = description
         self.locked = locked
 
+class HistoricalBet:
+    def __init__(self, user, line, position, wager, won, timePlcaed, timeResolved):
+        self.user = user
+        self.line = line
+        self.position = position
+        self.wager = wager
+        self.won = won
+        self.timePlaced = timePlaced
+        self.timeResolved = timeResolved
+
+class Line:
+    def __init__(self, host, line, description="", locked=False):
+        self.host = host
+        self.line = line
+        self.description = description
+        self.locked = locked
 
 modlist = Config.modlist
 whitelist = Config.whitelist
@@ -49,6 +65,11 @@ query = Query()
 @bot.event
 async def on_ready():
     print("ready")
+    await bot.send_message(discord.Object(id='490306602545446932'), 'Up and running!')
+
+@bot.event
+async def on_error():
+    await bot.say("U wot m8?")
 
 @bot.command(pass_context=True, brief="Sets a user up with {0} {1}".format(Config.starting_amount, Config.currency_code), description="Initializes a user with {0} {1} and allows them to begin placing bets. All users need to call this function before being able to place bets or open lines.".format(Config.starting_amount, Config.currency))
 async def ImALittleBitch(ctx):
@@ -67,6 +88,7 @@ async def leaderboard(ctx):
     orderedUsers = sorted(orderedUsers, key=lambda u: u.money)
     orderedUsers.reverse()
     embed = discord.Embed(title="Leaderboard", description="Users ranked by money", color=0xffffff)
+    embed.add_field(title="Website", value="http://www.ragambling.info/leaderboard");
     for user2 in orderedUsers:
         embed.add_field(name=user2.name, value=user2.money)
     await bot.say(embed=embed)
@@ -114,7 +136,7 @@ async def houseLine(ctx, line, description):
         await bot.say("Line cannot be opened. There is already an open line with the same name.")
     elif str(ctx.message.author) in whitelist:
         house = users.get(query.name == "House")
-        users.update({'money': (house['money'] + 25)}, query.name == "House")
+        users.update({'money': (house['money'] + 10)}, query.name == "House")
 
         dbLine = Line("House", line, description)
         lines.insert(vars(dbLine))
@@ -202,7 +224,7 @@ async def ou(ctx, line, *, description):
         await bot.say("Line cannot be opened. There is already an open line with the same name.")
     else:
         house = users.get(query.name == "House")
-        users.update({'money': (house['money'] + 25)}, query.name == "House")
+        users.update({'money': (house['money'] + 10)}, query.name == "House")
 
         dbLine = Line(str(ctx.message.author), line, description, False)
         lines.insert(vars(dbLine))
@@ -405,9 +427,10 @@ async def linesFunc(ctx):
     formattedLockedLines = " \r\n".join(list(map(lambda x: x['line'], lockedLines)))
 
     embed = discord.Embed(title="Lines", description="All currently open and locked lines", color=0xffffff)
-    embed.set_footer(text="On Wisconsin")
+    embed.add_field(title="Website", value="http://www.ragambling.info/lines");
     embed.add_field(name="Open Lines", value=formattedOpenLines)
     embed.add_field(name="Locked Lines", value=formattedLockedLines)
+    embed.set_footer(text="On Wisconsin")
     await bot.say(embed=embed)
 
 @bot.command(pass_context=True, brief="", description="")
@@ -527,7 +550,7 @@ async def overunder(ctx, userLine, amount, ou):
         await bot.say("The betting is locked for {}".format(line['line']))
     else:
         house = users.get(query.name == "House")
-        users.update({'money': (house['money'] + 25)}, query.name == "House")
+        users.update({'money': (house['money'] + 10)}, query.name == "House")
 
         dbBet = Bet(str(ctx.message.author), userLine, ou, amount)
         bets.insert(vars(dbBet))
