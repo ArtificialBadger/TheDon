@@ -87,8 +87,7 @@ async def leaderboard(ctx):
         orderedUsers.append(User(user['name'], user['money']))
     orderedUsers = sorted(orderedUsers, key=lambda u: u.money)
     orderedUsers.reverse()
-    embed = discord.Embed(title="Leaderboard", description="Users ranked by money", color=0xffffff)
-    embed.add_field(title="Website", value="http://www.ragambling.info/leaderboard");
+    embed = discord.Embed(title="Leaderboard", description="Users ranked by money\r\nhttp://www.ragambling.info/leaderboard", color=0xffffff)
     for user2 in orderedUsers:
         embed.add_field(name=user2.name, value=user2.money)
     await bot.say(embed=embed)
@@ -284,7 +283,6 @@ async def resolveLine(ctx, line, result, owner, description=""):
     else:
         houseMoney = int(lostMoney*.7)
         houseMoney -= int(wonMoney)
-        houseMoney += 50
         moneyForLineOpener = min(len(winners), len(losers)) * 5
         moneyForLineOpener += int((lostMoney*.3))
         lineOpener = users.get(query.name == owner['host'])
@@ -427,7 +425,7 @@ async def linesFunc(ctx):
     formattedLockedLines = " \r\n".join(list(map(lambda x: x['line'], lockedLines)))
 
     embed = discord.Embed(title="Lines", description="All currently open and locked lines", color=0xffffff)
-    embed.add_field(title="Website", value="http://www.ragambling.info/lines");
+    embed.add_field(name="Website", value="http://www.ragambling.info/lines");
     embed.add_field(name="Open Lines", value=formattedOpenLines)
     embed.add_field(name="Locked Lines", value=formattedLockedLines)
     embed.set_footer(text="On Wisconsin")
@@ -572,6 +570,11 @@ async def overunder(ctx, userLine, amount, ou):
 @bot.command(pass_context=True, brief="", description="")
 async def cancel(ctx, userLine):
 
+    if True:
+        emoji = get(bot.get_all_emojis(), name='nou')
+        await bot.add_reaction(ctx.message, emoji)
+        return
+
     line = lines.get(query.line.matches('^' + userLine + '$', re.IGNORECASE))
     user = users.get(query.name == str(ctx.message.author))
     bet = bets.get((query.user == str(ctx.message.author)) & (query.line.matches('^' + userLine + '$', re.IGNORECASE)))
@@ -585,12 +588,6 @@ async def cancel(ctx, userLine):
     elif line['locked']:
         await bot.say("The betting is locked for {}".format(line['line']))
     else:
-        #embed = discord.Embed(title="Bet Cancelled", color=0xffffff)
-        #embed.add_field(name="Line", value=line['line'])
-        #if not line['description'] == "":
-        #    embed.add_field(name="description", value=line['description'])
-        #embed.set_author(name=str(ctx.message.author))
-
         bets.remove((query.user == str(ctx.message.author)) & (query.line.matches('^' + userLine + '$', re.IGNORECASE)))
 
         await bot.say("{0} has cancelled their bet on {1}".format(str(ctx.message.author), line['line']))
