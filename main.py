@@ -10,6 +10,11 @@ import random
 import re
 import importlib
 import Config
+from DateTimeSerializer import DateTimeSerializer
+from datetime import datetime
+from tinydb_serialization import Serializer, SerializationMiddleware
+from pytz import timezone
+import pytz
 
 class User:
     def __init__(self, name, money):
@@ -17,11 +22,12 @@ class User:
         self.money = money
 
 class Bet:
-    def __init__(self, user, line, bet, wager):
+    def __init__(self, user, line, bet, wager, time = datetime.utcnow()):
         self.user = user
         self.line = line
         self.bet = bet
         self.wager = wager
+        self.time = time
 
 class Line:
     def __init__(self, host, line, description="", locked=False):
@@ -31,7 +37,7 @@ class Line:
         self.locked = locked
 
 class HistoricalBet:
-    def __init__(self, user, line, position, wager, won, timePlcaed, timeResolved):
+    def __init__(self, user, line, position, wager, won, timePlaced, timeResolved):
         self.user = user
         self.line = line
         self.position = position
@@ -40,7 +46,7 @@ class HistoricalBet:
         self.timePlaced = timePlaced
         self.timeResolved = timeResolved
 
-class Line:
+class HistoricalLine:
     def __init__(self, host, line, description="", locked=False):
         self.host = host
         self.line = line
@@ -53,19 +59,31 @@ app_secret = Config.app_secret
 
 bot = commands.Bot(command_prefix='$')
 
-users = TinyDB('users.json')
-bets = TinyDB('bets.json')
-lines = TinyDB('lines.json')
+serialization = SerializationMiddleware()
+serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
 
-pastBets = TinyDB('pastBets.json')
-pastLines = TinyDB('pastLines.json')
+serialization2 = SerializationMiddleware()
+serialization2.register_serializer(DateTimeSerializer(), 'TinyDate')
+
+serialization3 = SerializationMiddleware()
+serialization3.register_serializer(DateTimeSerializer(), 'TinyDate')
+
+serialization4 = SerializationMiddleware()
+serialization4.register_serializer(DateTimeSerializer(), 'TinyDate')
+
+users = TinyDB('users.json')
+bets = TinyDB('bets.json', storage=serialization)
+lines = TinyDB('lines.json', storage=serialization2)
+
+pastBets = TinyDB('pastBets.json', storage=serialization3)
+pastLines = TinyDB('pastLines.json', storage=serialization4)
 
 query = Query()
 
-@bot.event
-async def on_ready():
-    print("ready")
-    await bot.send_message(discord.Object(id='490306602545446932'), 'Up and running!')
+#@bot.event
+#async def on_ready():
+#    print("ready")
+#    await bot.send_message(discord.Object(id='490306602545446932'), 'Up and running!')
 
 @bot.event
 async def on_error():
@@ -535,6 +553,7 @@ async def overunder(ctx, userLine, amount, ou):
                 return
 
     if user is None:
+        await bot.say(str(ctx.message.author))
         await bot.say("You are not registered")
     elif line is None:
         await bot.say("{} is not an open line".format(userLine))
@@ -561,14 +580,19 @@ async def overunder(ctx, userLine, amount, ou):
         embed.add_field(name="Line", value=line['line'])
         if not line['description'] == "":
             embed.add_field(name="description", value=line['description'])
+
+        ratime = timezone('America/Chicago') # TODO: Config this timezone thing
+        localtime = dbBet.time.astimezone(ratime)
+
         embed.add_field(name="Position", value=ou)
         embed.add_field(name="Amount", value=amount)
+        embed.add_field(name="Time Placed (RA Timezone)", value= localtime.strftime('%b %d %H:%M'))
         embed.set_footer(text="On Wisconsin")
         embed.set_author(name=line['host'])
         await bot.say(embed=embed)
 
 @bot.command(pass_context=True, brief="", description="")
-async def cancel(ctx, userLine):
+async def cancel(ctx, userLine=""):
 
     if True:
         emoji = get(bot.get_all_emojis(), name='nou')
