@@ -1,6 +1,7 @@
 modlist = []
 whitelist = []
 app_secret = ""
-currency = ""
-currency_code = ""
+currency = "RA Bucks"
+currency_code = "RAB"
 starting_amount = 100
+allow_cancels = False
