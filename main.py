@@ -10,11 +10,11 @@ import random
 import re
 import importlib
 import Config
+import functions
 from DateTimeSerializer import DateTimeSerializer
 from datetime import datetime
 from tinydb_serialization import Serializer, SerializationMiddleware
 from pytz import timezone
-import pytz
 
 class User:
     def __init__(self, name, money):
@@ -37,7 +37,7 @@ class Line:
         self.locked = locked
 
 class HistoricalBet:
-    def __init__(self, user, line, position, wager, won, timePlaced, timeResolved):
+    def __init__(self, user, line, position, wager, won, timePlaced, timeResolved = datetime.utcnow()):
         self.user = user
         self.line = line
         self.position = position
@@ -47,11 +47,12 @@ class HistoricalBet:
         self.timeResolved = timeResolved
 
 class HistoricalLine:
-    def __init__(self, host, line, description="", locked=False):
+    def __init__(self, host, line, resolution, description, timeResolved = datetime.utcnow()):
         self.host = host
         self.line = line
+        self.resolution = resolution
         self.description = description
-        self.locked = locked
+        self.timeResolved = timeResolved
 
 modlist = Config.modlist
 whitelist = Config.whitelist
@@ -75,8 +76,8 @@ users = TinyDB('users.json')
 bets = TinyDB('bets.json', storage=serialization)
 lines = TinyDB('lines.json', storage=serialization2)
 
-pastBets = TinyDB('pastBets.json', storage=serialization3)
-pastLines = TinyDB('pastLines.json', storage=serialization4)
+historical_bets = TinyDB('pastBets.json', storage=serialization3)
+historical_lines = TinyDB('pastLines.json', storage=serialization4)
 
 query = Query()
 
@@ -276,6 +277,9 @@ async def resolveLine(ctx, line, result, owner, description=""):
         winnersText += "{0} has won {1} RABucks\r\n".format(winner['user'], int(winner.get('wager')))
         wonMoney += int(winner['wager'])
 
+        historical_bet = HistoricalBet(winner['user'], winner['line'], winner['bet'], winner['wager'], True, winner['time'], datetime.utcnow())
+        historical_bets.insert(vars(historical_bet))
+
     if len(winners) > 0:
         embed.add_field(name="Winners", value=winnersText)
         embed.add_field(name="Total Money Won", value=wonMoney)
@@ -288,6 +292,9 @@ async def resolveLine(ctx, line, result, owner, description=""):
         users.update({'money': newMoney}, query.name == user['name'])
         losersText += "{0} has lost {1} RABucks\r\n".format(loser['user'], int(loser.get('wager')))
         lostMoney += int(loser['wager'])
+
+        historical_bet = HistoricalBet(loser['user'], loser['line'], loser['bet'], loser['wager'], False, loser['time'], datetime.utcnow())
+        historical_bets.insert(vars(historical_bet))
 
     if len(losers) > 0:
         embed.add_field(name="Losers", value=losersText)
@@ -321,7 +328,8 @@ async def resolveLine(ctx, line, result, owner, description=""):
     bets.remove(where('line').matches('^' + line + '$', re.IGNORECASE))
     lines.remove(where('line').matches('^' + line + '$', re.IGNORECASE))
 
-    #pastBets.insert(line)
+    historical_line = HistoricalLine(owner['host'], dbLine['line'], result, dbLine['description'])
+    historical_lines.insert(vars(historical_line))
 
 
 @bot.command(pass_context=True, brief="", description="")
@@ -477,6 +485,46 @@ async def info(ctx, line):
     await bot.say(embed=embed)
 
 
+@bot.command(pass_context=True, brief="REMOVE THIS PLZ", description="")
+async def historicalLines(ctx, user: discord.Member = None):
+    embed = discord.Embed(title="Bets", description="All Previous Lines (this shouldn't exist, report this to AB for a bounty)", color=0xffffff)
+    embed.set_footer(text="On Wisconsin")
+
+    historical_lines_text = ""
+
+    ordered_lines = sorted(historical_lines.all(), key=lambda x: x['timeResolved'])
+    ordered_lines.reverse()
+
+    for historical_line in ordered_lines:
+        historical_lines_text += "{0} resolved as {1} at {2}\r\n".format(historical_line['line'], historical_line['resolution'], functions.to_time(historical_line['timeResolved']))
+
+    if historical_lines_text != "":
+        embed.add_field(name="All Previous Lines", value=historical_lines_text)
+
+    await bot.say(embed=embed)
+
+
+@bot.command(pass_context=True, brief="REMOVE THIS PLZ", description="")
+async def historicalBets(ctx, user: discord.Member = None):
+    embed = discord.Embed(title="Bets", description="All Historical Bets (this shouldn't exist, report this to AB for a bounty)", color=0xffffff)
+    embed.set_footer(text="On Wisconsin")
+
+    historical_bets_text = ""
+
+    ordered_bets = sorted(historical_bets.all(), key=lambda x: x['timePlaced'])
+    ordered_bets.reverse()
+
+    for historical_bet in ordered_bets:
+        if historical_bet['won']:
+            historical_bets_text += "{0} won {1} on {2} at {3}\r\n".format(historical_bet['user'], historical_bet['wager'], historical_bet['line'], functions.to_time(historical_bet['timePlaced']))
+        else:
+            historical_bets_text += "{0} lost {1} on {2} at {3}\r\n".format(historical_bet['user'], historical_bet['wager'], historical_bet['line'], functions.to_time(historical_bet['timePlaced']))
+
+    if historical_bets_text != "":
+        embed.add_field(name="All Previous Bets", value=historical_bets_text)
+
+    await bot.say(embed=embed)
+
 @bot.command(pass_context=True, name="bets", brief="", description="")
 async def betsFunc(ctx, user: discord.Member = None):
     embed = discord.Embed(title="Bets", description="All currently open bets", color=0xffffff)
@@ -567,7 +615,7 @@ async def overunder(ctx, userLine, amount, ou):
         await bot.say("The betting is locked for {}".format(line['line']))
     else:
         house = users.get(query.name == "House")
-        users.update({'money': (house['money'] + 10)}, query.name == "House")
+        users.update({'money': (house['money'] + 5)}, query.name == "House")
 
         dbBet = Bet(str(ctx.message.author), userLine, ou, amount)
         bets.insert(vars(dbBet))
@@ -581,12 +629,9 @@ async def overunder(ctx, userLine, amount, ou):
         if not line['description'] == "":
             embed.add_field(name="description", value=line['description'])
 
-        ratime = timezone('America/Chicago') # TODO: Config this timezone thing
-        localtime = dbBet.time.astimezone(ratime)
-
         embed.add_field(name="Position", value=ou)
         embed.add_field(name="Amount", value=amount)
-        embed.add_field(name="Time Placed (RA Timezone)", value= localtime.strftime('%b %d %H:%M'))
+        embed.add_field(name="Time Placed (RA Time)", value=functions.to_time('%b %d %H:%M'))
         embed.set_footer(text="On Wisconsin")
         embed.set_author(name=line['host'])
         await bot.say(embed=embed)
@@ -594,7 +639,7 @@ async def overunder(ctx, userLine, amount, ou):
 @bot.command(pass_context=True, brief="", description="")
 async def cancel(ctx, userLine=""):
 
-    if True:
+    if not Config.allow_cancels:
         emoji = get(bot.get_all_emojis(), name='nou')
         await bot.add_reaction(ctx.message, emoji)
         return
@@ -742,4 +787,6 @@ async def contributeFunc(ctx):
     await bot.say("The Don is now Open source\r\nhttps://github.com/ArtificialBadger/TheDon")
 
 bot.run(app_secret)
+
+
 
