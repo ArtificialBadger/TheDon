@@ -22,7 +22,7 @@ class User:
         self.money = money
 
 class Bet:
-    def __init__(self, user, line, bet, wager, time = datetime.utcnow()):
+    def __init__(self, user, line, bet, wager, time):
         self.user = user
         self.line = line
         self.bet = bet
@@ -37,7 +37,7 @@ class Line:
         self.locked = locked
 
 class HistoricalBet:
-    def __init__(self, user, line, position, wager, won, timePlaced, timeResolved = datetime.utcnow()):
+    def __init__(self, user, line, position, wager, won, timePlaced, timeResolved):
         self.user = user
         self.line = line
         self.position = position
@@ -47,7 +47,7 @@ class HistoricalBet:
         self.timeResolved = timeResolved
 
 class HistoricalLine:
-    def __init__(self, host, line, resolution, description, timeResolved = datetime.utcnow()):
+    def __init__(self, host, line, resolution, description, timeResolved):
         self.host = host
         self.line = line
         self.resolution = resolution
@@ -81,10 +81,10 @@ historical_lines = TinyDB('pastLines.json', storage=serialization4)
 
 query = Query()
 
-#@bot.event
-#async def on_ready():
-#    print("ready")
-#    await bot.send_message(discord.Object(id='490306602545446932'), 'Up and running!')
+@bot.event
+async def on_ready():
+    print("ready")
+    await bot.send_message(discord.Object(id='490306602545446932'), 'Up and running!')
 
 @bot.event
 async def on_error():
@@ -99,7 +99,7 @@ async def ImALittleBitch(ctx):
         users.insert(vars(User(str(ctx.message.author), Config.starting_amount)))
         await bot.say("{0} has been given {1} {2}".format(str(ctx.message.author), Config.starting_amount, Config.currency))
 
-@bot.command(pass_context=True, brief="", description="")
+@bot.command(pass_context=True, brief="Shows the leaders in order of {0}".format(Config.currency), description="Displays a full ordering of users, ordered by {0}".format(Config.currency))
 async def leaderboard(ctx):
     orderedUsers = []
     for user in users.all():
@@ -111,41 +111,50 @@ async def leaderboard(ctx):
         embed.add_field(name=user2.name, value=user2.money)
     await bot.say(embed=embed)
 
-@bot.command(pass_context=True, brief="", description="")
+@bot.command(pass_context=True, brief="Shows the callers {0}".format(Config.currency), description="Shows the amount of {0} of the command invoker".format(Config.currency))
 async def money(ctx):
     user = users.get(query.name == str(ctx.message.author))
     if user is not None:
         await bot.say("You have {} RABucks".format(user['money']))
 
-@bot.command(pass_context=True, brief="", description="")
+@bot.command(pass_context=True, brief="Purges all the data", description="Very dangerous command\r\nOnly invokeable by mods with the allow_puges flag set to true")
 async def purgeAll(ctx):
-    if (str(ctx.message.author) in modlist):
-        users.purge()
-        await bot.say("Users Purged")
-        bets.purge()
-        await bot.say("Bets Purged")
-        lines.purge()
-        await bot.say("Lines Purged")
-    else:
-        await bot.say("You are not authorized to purge")
-
-@bot.command(pass_context=True, brief="", description="")
-async def purge(ctx, table):
-    if (str(ctx.message.author) in modlist):
-        if (table == "users"):
+    if Config.allow_purges:
+        if (str(ctx.message.author) in modlist):
             users.purge()
             await bot.say("Users Purged")
-        elif table == "bets":
             bets.purge()
             await bot.say("Bets Purged")
-        elif table == "lines":
             lines.purge()
             await bot.say("Lines Purged")
+
         else:
-            await bot.say("That's not something purgable you idiot")
+            await bot.say("You are not authorized to purge")
     else:
-        emoji = get(bot.get_all_emojis(), name='nou')
-        await bot.say(emoji)
+        await bot.say("Purging is disallowed. Set the allow_purge flag to True to allow purging")
+
+@bot.command(pass_context=True, brief="Purges specific tables", description="Purges either the historical data, users, bets, or lines")
+async def purge(ctx, table):
+    if Config.allow_purges:
+        if (str(ctx.message.author) in modlist):
+            if (table.lower() == "history"):
+                historical_bets.purge()
+                await bot.say("Historical Lines and Bets Purged")
+            elif (table.lower() == "users"):
+                users.purge()
+                await bot.say("Users Purged")
+            elif table.lower() == "bets":
+                bets.purge()
+                await bot.say("Bets Purged")
+            elif table.lower() == "lines":
+                lines.purge()
+                await bot.say("Lines Purged")
+            else:
+                await bot.say("That's not something purgable you idiot")
+        else:
+            await bot.say("You are not authorized to purge")
+    else:
+        await bot.say("Purging is disallowed. Set the allow_purge flag to True to allow purging")
 
 async def houseLine(ctx, line, description):
     activeLine = lines.get(query.line.matches('^' + line + '$', flags=re.IGNORECASE))
@@ -167,15 +176,15 @@ async def houseLine(ctx, line, description):
     else:
         await bot.say("Only trusted users can open a House Line")
 
-@bot.command(pass_context=True, brief="", description="")
+@bot.command(pass_context=True, brief="Opens a house line", description="Opens a line with the House as an owner. Generally used for lines with pre-established odds, such as Spreads and Over Unders.")
 async def house(ctx, line, *, description=""):
     await houseLine(ctx, line, description)
 
-@bot.command(pass_context=True, name="BurtReynolds", brief="", description="")
+@bot.command(pass_context=True, name="BurtReynolds", brief="Opens a House line called Drive", description="Opens a house line called Drive. Created specifically for Dustin on his daily commutes.")
 async def drive(ctx, *, description):
     await houseLine(ctx, "Drive", description)
 
-@bot.command(pass_context=True, brief="", description="")
+@bot.command(pass_context=True, brief="Unlocks a line", description="Unlocks a line to further betting. Only has an effect when the line is currently locked.")
 async def unlock(ctx, line):
     hostLine = lines.get(query.line.matches(line, flags=re.IGNORECASE))
     host = hostLine['host']
@@ -230,11 +239,11 @@ async def lockLine(ctx, line):
         await bot.say("You cannot lock a line you did not open")
 
 
-@bot.command(pass_context=True, brief="", description="")
+@bot.command(pass_context=True, brief="Locks a line", description="Locks a line so that no more bets can be made. Line must be unlocked for future betting to occur.")
 async def lock(ctx, line):
     await lockLine(ctx, line)
 
-@bot.command(pass_context=True,name="o/u", brief="", description="")
+@bot.command(pass_context=True,name="o/u", brief="Opens a line", description="Opens a line to betting. The first word following o/u will be the line name and all subsequent text will be used as teh description of the line.")
 async def ou(ctx, line, *, description):
     activeLine = lines.get(query.line.matches('^' + line + '$', flags=re.IGNORECASE))
 
@@ -328,15 +337,15 @@ async def resolveLine(ctx, line, result, owner, description=""):
     bets.remove(where('line').matches('^' + line + '$', re.IGNORECASE))
     lines.remove(where('line').matches('^' + line + '$', re.IGNORECASE))
 
-    historical_line = HistoricalLine(owner['host'], dbLine['line'], result, dbLine['description'])
+    historical_line = HistoricalLine(owner['host'], dbLine['line'], result, dbLine['description'], timeResolved = datetime.utcnow())
     historical_lines.insert(vars(historical_line))
 
 
-@bot.command(pass_context=True, brief="", description="")
+@bot.command(pass_context=True, brief="Resolves an open line", description="Resolves an open line. Can be resolved either over, under, or wash.\r\nWinners are given an amount of {0} to their wager, losers are deducted an amount of {0} equal to their wager.\r\nMoney is granted to the line opener during resolution.\r\nNo money is given or taken in the case of a wash".format(Config.currency))
 async def resolve(ctx, bet, result="", *, description=""):
     await resolveFunc(ctx, bet, result, description)
 
-@bot.command(pass_context=True, brief="", description="")
+@bot.command(pass_context=True, brief="Washes a line", description="Resolves a line as a wash/push. No money is taken nor given.")
 async def wash(ctx, bet):
     await resolveFunc(ctx, bet, "wash")
 
@@ -368,11 +377,11 @@ async def resolveFunc(ctx, bet, result="", description=""):
     else:
         await resolveLine(ctx, bet, result, owner, description)
 
-@bot.command(pass_context=True, name="myBets", brief="", description="")
+@bot.command(pass_context=True, name="myBets", brief="Shows the callers active bets", description="Displays all the active bets bade by the command invoker.")
 async def myBets1(ctx):
     await myBetsFunc(ctx)
 
-@bot.command(pass_context=True, name="mybets", brief="", description="")
+@bot.command(pass_context=True, name="mybets", brief="Shows the callers active bets", description="Displays all the active bets bade by the command invoker.")
 async def myBets2(ctx):
     await myBetsFunc(ctx)
 
@@ -434,15 +443,15 @@ async def myLinesFunc(ctx):
 
     await bot.say(embed=embed)
 
-@bot.command(pass_context=True, brief="", description="")
+@bot.command(pass_context=True, brief="Shows all lines in relation to the caller", description="Shows all the lines that the command invoker is hosting, has bets on, and the locked and unlocked lines.")
 async def myLines(ctx):
     await myLinesFunc(ctx)
 
-@bot.command(pass_context=True, brief="", description="")
+@bot.command(pass_context=True, brief="Shows all lines in relation to the caller", description="Shows all the lines that the command invoker is hosting, has bets on, and the locked and unlocked lines.")
 async def mylines(ctx):
     await myLinesFunc(ctx)
 
-@bot.command(pass_context=True, name="lines", brief="", description="")
+@bot.command(pass_context=True, name="lines", brief="Shows categorized lines", description="Shows all active lines, categorized into locked and unlocked lines.")
 async def linesFunc(ctx):
     openLines = lines.search(query.locked == False)
     lockedLines = lines.search(query.locked == True)
@@ -457,7 +466,7 @@ async def linesFunc(ctx):
     embed.set_footer(text="On Wisconsin")
     await bot.say(embed=embed)
 
-@bot.command(pass_context=True, brief="", description="")
+@bot.command(pass_context=True, brief="Gives info about a specific line", description="Gives all availible info about a line")
 async def info(ctx, line):
     activeLine = lines.get(query.line.matches('^' + line + '$', re.IGNORECASE))
 
@@ -487,7 +496,7 @@ async def info(ctx, line):
 
 @bot.command(pass_context=True, brief="REMOVE THIS PLZ", description="")
 async def historicalLines(ctx, user: discord.Member = None):
-    embed = discord.Embed(title="Bets", description="All Previous Lines (this shouldn't exist, report this to AB for a bounty)", color=0xffffff)
+    embed = discord.Embed(title="Bets", description="All Previous Lines", color=0xffffff)
     embed.set_footer(text="On Wisconsin")
 
     historical_lines_text = ""
@@ -506,7 +515,7 @@ async def historicalLines(ctx, user: discord.Member = None):
 
 @bot.command(pass_context=True, brief="REMOVE THIS PLZ", description="")
 async def historicalBets(ctx, user: discord.Member = None):
-    embed = discord.Embed(title="Bets", description="All Historical Bets (this shouldn't exist, report this to AB for a bounty)", color=0xffffff)
+    embed = discord.Embed(title="Bets", description="All Historical Bets (for testing purposes only)", color=0xffffff)
     embed.set_footer(text="On Wisconsin")
 
     historical_bets_text = ""
@@ -571,7 +580,7 @@ async def adjust(ctx, user: discord.Member, amount):
     user = users.get(query.name == str(user))
 
     if not str(ctx.message.author) in modlist:
-        await bot.say("Only mods can award bounties")
+        await bot.say("Only mods can adjust money")
     elif user is None:
         await bot.say("User is not registered in the system")
     elif not is_integer(amount):
@@ -617,7 +626,7 @@ async def overunder(ctx, userLine, amount, ou):
         house = users.get(query.name == "House")
         users.update({'money': (house['money'] + 5)}, query.name == "House")
 
-        dbBet = Bet(str(ctx.message.author), userLine, ou, amount)
+        dbBet = Bet(str(ctx.message.author), userLine, ou, amount, time=datetime.utcnow())
         bets.insert(vars(dbBet))
         if ou == 'over':
             embed = discord.Embed(title="Bet Made", description="Bet made by {}".format(ctx.message.author), color=0xff0000)
@@ -631,7 +640,7 @@ async def overunder(ctx, userLine, amount, ou):
 
         embed.add_field(name="Position", value=ou)
         embed.add_field(name="Amount", value=amount)
-        embed.add_field(name="Time Placed (RA Time)", value=functions.to_time('%b %d %H:%M'))
+        embed.add_field(name="Time Placed (RA Time)", value=functions.to_time(dbBet.time))
         embed.set_footer(text="On Wisconsin")
         embed.set_author(name=line['host'])
         await bot.say(embed=embed)
