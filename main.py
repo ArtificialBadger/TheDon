@@ -15,6 +15,9 @@ from DateTimeSerializer import DateTimeSerializer
 from datetime import datetime
 from tinydb_serialization import Serializer, SerializationMiddleware
 from pytz import timezone
+import sys
+
+sys.setrecursionlimit(100000)
 
 class User:
     def __init__(self, name, money):
