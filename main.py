@@ -87,7 +87,7 @@ query = Query()
 @bot.event
 async def on_ready():
     print("ready")
-    await bot.send_message(discord.Object(id='490306602545446932'), 'Up and running!')
+#    await bot.send_message(discord.Object(id='490306602545446932'), 'Up and running!')
 
 @bot.event
 async def on_error():
@@ -674,27 +674,36 @@ async def overunder(ctx, userLine, amount, ou):
 @bot.command(pass_context=True, brief="", description="")
 async def cancel(ctx, userLine=""):
 
-    if not Config.allow_cancels:
+    can_cancel = False
+
+    #TODO Rest of configs for can_cancel
+
+    if Config.allow_cancels == Config.CancelOptions.MODS and str(ctx.message.author) in modlist:
+        can_cancel = True
+    else:
+        can_cancel = False
+
+    if can_cancel:
+        line = lines.get(query.line.matches('^' + userLine + '$', re.IGNORECASE))
+        user = users.get(query.name == str(ctx.message.author))
+        bet = bets.get((query.user == str(ctx.message.author)) & (query.line.matches('^' + userLine + '$', re.IGNORECASE)))
+
+        if user is None:
+            await bot.say("You are not registered")
+        elif line is None:
+            await bot.say("{} is not an open line".format(userLine))
+        elif bet is None:
+            await bot.say("You do not have a bet on {}".format(line['line']))
+        elif line['locked']:
+            await bot.say("The betting is locked for {}".format(line['line']))
+        else:
+            bets.remove((query.user == str(ctx.message.author)) & (query.line.matches('^' + userLine + '$', re.IGNORECASE)))
+
+            await bot.say("{0} has cancelled their bet on {1}".format(str(ctx.message.author), line['line']))
+    else:
         emoji = get(bot.get_all_emojis(), name='nou')
         await bot.add_reaction(ctx.message, emoji)
         return
-
-    line = lines.get(query.line.matches('^' + userLine + '$', re.IGNORECASE))
-    user = users.get(query.name == str(ctx.message.author))
-    bet = bets.get((query.user == str(ctx.message.author)) & (query.line.matches('^' + userLine + '$', re.IGNORECASE)))
-
-    if user is None:
-        await bot.say("You are not registered")
-    elif line is None:
-        await bot.say("{} is not an open line".format(userLine))
-    elif bet is None:
-        await bot.say("You do not have a bet on {}".format(line['line']))
-    elif line['locked']:
-        await bot.say("The betting is locked for {}".format(line['line']))
-    else:
-        bets.remove((query.user == str(ctx.message.author)) & (query.line.matches('^' + userLine + '$', re.IGNORECASE)))
-
-        await bot.say("{0} has cancelled their bet on {1}".format(str(ctx.message.author), line['line']))
 
 @bot.command(pass_context=True, brief="", description="")
 async def rand(ctx, amount="0", picked_line_name=""):
