@@ -160,7 +160,7 @@ async def purge(ctx, table):
         await bot.say("Purging is disallowed. Set the allow_purge flag to True to allow purging")
 
 async def houseLine(ctx, line, description):
-    activeLine = lines.get(query.line.matches('^' + line + '$', flags=re.IGNORECASE))
+    activeLine = lines.get(query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE))
 
     if not activeLine is None:
         await bot.say("Line cannot be opened. There is already an open line with the same name.")
@@ -206,7 +206,7 @@ async def unlock(ctx, line):
     if not hostLine['locked']:
         await bot.say("{} is already unlocked".format(line))
     elif canUnlock:
-        lines.update({'locked': False}, query.line.matches('^' + line + '$', flags=re.IGNORECASE))
+        lines.update({'locked': False}, query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE))
         await bot.say("Betting for {} has been unlocked, feel free to place bets".format(line))
 
     else:
@@ -214,7 +214,7 @@ async def unlock(ctx, line):
 
 
 async def lockLine(ctx, line):
-    hostLine = lines.get(query.line.matches('^' + line + '$', flags=re.IGNORECASE))
+    hostLine = lines.get(query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE))
 
     if hostLine is None:
         await bot.say("{} is not an open line".format(line))
@@ -236,7 +236,7 @@ async def lockLine(ctx, line):
     if hostLine['locked']:
         await bot.say("{} is already locked".format(hostLine['line']))
     elif canLock:
-        lines.update({'locked': True}, query.line.matches('^' + line + '$', flags=re.IGNORECASE))
+        lines.update({'locked': True}, query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE))
         await bot.say("Betting for {} has been locked. No more bets can be placed unless the line is unlocked".format(hostLine['line']))
     else:
         await bot.say("You cannot lock a line you did not open")
@@ -248,7 +248,7 @@ async def lock(ctx, line):
 
 @bot.command(pass_context=True,name="o/u", brief="Opens a line", description="Opens a line to betting. The first word following o/u will be the line name and all subsequent text will be used as teh description of the line.")
 async def ou(ctx, line, *, description):
-    activeLine = lines.get(query.line.matches('^' + line + '$', flags=re.IGNORECASE))
+    activeLine = lines.get(query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE))
 
     if not activeLine is None:
         await bot.say("Line cannot be opened. There is already an open line with the same name.")
@@ -265,7 +265,7 @@ async def ou(ctx, line, *, description):
         await bot.say(embed=embed)
 
 async def resolveLine(ctx, line, result, owner, description=""):
-    dbLine = lines.get(query.line.matches('^' + line + '$', re.IGNORECASE))
+    dbLine = lines.get(query.line.matches('^' + re.escape(line) + '$', re.IGNORECASE))
     if dbLine is None:
         await bot.say("Something has gone terribly wrong. Error code NL100")
 
@@ -274,8 +274,8 @@ async def resolveLine(ctx, line, result, owner, description=""):
     if not description == "":
         embed.add_field(name="Resolution Description", value=description)
 
-    winners = bets.search((query.bet == result) & (query.line.matches('^' + line + '$', flags=re.IGNORECASE)))
-    losers = bets.search((query.bet != result) & (query.line.matches('^' + line + '$', flags=re.IGNORECASE)))
+    winners = bets.search((query.bet == result) & (query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE)))
+    losers = bets.search((query.bet != result) & (query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE)))
     lostMoney = 0
     wonMoney = 0
 
@@ -337,8 +337,8 @@ async def resolveLine(ctx, line, result, owner, description=""):
             embed.add_field(name="House", value="The house has lost {0} RABucks".format(0 - houseMoney))
         await bot.say(embed=embed)
 
-    bets.remove(where('line').matches('^' + line + '$', re.IGNORECASE))
-    lines.remove(where('line').matches('^' + line + '$', re.IGNORECASE))
+    bets.remove(where('line').matches('^' + re.escape(line) + '$', re.IGNORECASE))
+    lines.remove(where('line').matches('^' + re.escape(line) + '$', re.IGNORECASE))
 
     historical_line = HistoricalLine(owner['host'], dbLine['line'], result, dbLine['description'], timeResolved = datetime.utcnow())
     historical_lines.insert(vars(historical_line))
@@ -353,7 +353,7 @@ async def wash(ctx, bet):
     await resolveFunc(ctx, bet, "wash")
 
 async def resolveFunc(ctx, bet, result="", description=""):
-    owner = lines.get(query.line.matches('^' + bet + '$', re.IGNORECASE))
+    owner = lines.get(query.line.matches('^' + re.escape(bet) + '$', re.IGNORECASE))
 
     if (owner is None):
         await bot.say("{} is not an open line".format(bet))
@@ -361,8 +361,8 @@ async def resolveFunc(ctx, bet, result="", description=""):
         if str(ctx.message.author) in whitelist:
             if result == "wash":
                 await bot.say("{} was a wash, everyone gets their money back!".format(owner['line']))
-                bets.remove(where('line').matches('^' + bet + '$', re.IGNORECASE))
-                lines.remove(where('line').matches('^' + bet + '$', re.IGNORECASE))
+                bets.remove(where('line').matches('^' + re.escape(bet) + '$', re.IGNORECASE))
+                lines.remove(where('line').matches('^' + re.escape(bet) + '$', re.IGNORECASE))
             elif result == "over" or result == "under":
                 await resolveLine(ctx, bet, result, owner, description)
             else:
@@ -375,8 +375,8 @@ async def resolveFunc(ctx, bet, result="", description=""):
         await bot.say("Result must either be \"over\", \"under\" or \"wash\"")
     elif result == "wash":
         await bot.say("{} was a wash, everyone gets their money back!".format(owner['line']))
-        bets.remove(where('line').matches('^' + bet + '$', re.IGNORECASE))
-        lines.remove(where('line').matches('^' + bet + '$', re.IGNORECASE))
+        bets.remove(where('line').matches('^' + re.escape(bet) + '$', re.IGNORECASE))
+        lines.remove(where('line').matches('^' + re.escape(bet) + '$', re.IGNORECASE))
     else:
         await resolveLine(ctx, bet, result, owner, description)
 
@@ -471,7 +471,7 @@ async def linesFunc(ctx):
 
 @bot.command(pass_context=True, brief="Gives info about a specific line", description="Gives all availible info about a line")
 async def info(ctx, line):
-    activeLine = lines.get(query.line.matches('^' + line + '$', re.IGNORECASE))
+    activeLine = lines.get(query.line.matches('^' + re.escape(line) + '$', re.IGNORECASE))
 
     if activeLine == None:
         await bot.say("{} is not an open line".format(line))
@@ -482,7 +482,7 @@ async def info(ctx, line):
     embed.add_field(name="Locked" , value = activeLine['locked'])
     overText = ""
     underText = ""
-    for bet in bets.search(query.line.matches('^' + line + '$', re.IGNORECASE)):
+    for bet in bets.search(query.line.matches('^' + re.escape(line) + '$', re.IGNORECASE)):
         if bet['bet'] == 'over':
             overText += "{0} - {1} \r\n".format(bet['wager'], bet['user'])
         elif bet['bet'] == 'under':
@@ -625,7 +625,7 @@ def is_integer(s):
         return False
 
 async def overunder(ctx, userLine, amount, ou):
-    line = lines.get(query.line.matches('^' + userLine + '$', re.IGNORECASE))
+    line = lines.get(query.line.matches('^' + re.escape(userLine) + '$', re.IGNORECASE))
     user = users.get(query.name == str(ctx.message.author))
     previousBets = bets.search((query.user == str(ctx.message.author)))
 
@@ -684,9 +684,9 @@ async def cancel(ctx, userLine=""):
         can_cancel = False
 
     if can_cancel:
-        line = lines.get(query.line.matches('^' + userLine + '$', re.IGNORECASE))
+        line = lines.get(query.line.matches('^' + re.escape(userLine) + '$', re.IGNORECASE))
         user = users.get(query.name == str(ctx.message.author))
-        bet = bets.get((query.user == str(ctx.message.author)) & (query.line.matches('^' + userLine + '$', re.IGNORECASE)))
+        bet = bets.get((query.user == str(ctx.message.author)) & (query.line.matches('^' + re.escape(userLine) + '$', re.IGNORECASE)))
 
         if user is None:
             await bot.say("You are not registered")
@@ -697,7 +697,7 @@ async def cancel(ctx, userLine=""):
         elif line['locked']:
             await bot.say("The betting is locked for {}".format(line['line']))
         else:
-            bets.remove((query.user == str(ctx.message.author)) & (query.line.matches('^' + userLine + '$', re.IGNORECASE)))
+            bets.remove((query.user == str(ctx.message.author)) & (query.line.matches('^' + re.escape(userLine) + '$', re.IGNORECASE)))
 
             await bot.say("{0} has cancelled their bet on {1}".format(str(ctx.message.author), line['line']))
     else:
