@@ -463,7 +463,7 @@ async def linesFunc(ctx):
     formattedLockedLines = " \r\n".join(list(map(lambda x: x['line'], lockedLines)))
 
     embed = discord.Embed(title="Lines", description="All currently open and locked lines", color=0xffffff)
-    embed.add_field(name="Website", value="http://www.ragambling.info/lines");
+    embed.add_field(name="Website", value="http://www.ragambling.info");
     embed.add_field(name="Open Lines", value=formattedOpenLines)
     embed.add_field(name="Locked Lines", value=formattedLockedLines)
     embed.set_footer(text="On Wisconsin")
@@ -515,6 +515,29 @@ async def historicalLines(ctx, user: discord.Member = None):
 
     await bot.say(embed=embed)
 
+
+@bot.command(pass_context=True, brief="History for a user", description="")
+async def history(ctx):
+    embed = discord.Embed(title="Bets", description="Previous bets", color=0xffffff)
+    embed.set_footer(text="On Wisconsin")
+
+    historical_bets_text = ""
+
+    ordered_bets = sorted(historical_bets.search(query.user == str(ctx.message.author)), key=lambda x: x['timeResolved'])
+    ordered_bets.reverse()
+
+    del ordered_bets[20:]
+
+    for historical_bet in ordered_bets:
+        if historical_bet['won']:
+            historical_bets_text += "won {0} on {1} at {2}\r\n".format(historical_bet['wager'], historical_bet['line'], functions.to_time(historical_bet['timeResolved']))
+        else:
+            historical_bets_text += "lost {0} on {1} at {2}\r\n".format(historical_bet['wager'], historical_bet['line'], functions.to_time(historical_bet['timeResolved']))
+    if historical_bets_text != "":
+        embed.add_field(name="Most Recent Bets", value=historical_bets_text)
+
+
+    await bot.say(embed=embed)
 
 @bot.command(pass_context=True, brief="REMOVE THIS PLZ", description="")
 async def historicalBets(ctx, user: discord.Member = None):
