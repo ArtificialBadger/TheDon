@@ -749,6 +749,18 @@ async def rand(ctx, amount="0", picked_line_name=""):
     else:
         await overunder(ctx, picked_line_name, amount, randomPosition)
 
+@bot.command(pass_context=True, brief ="", description="")
+async def game(ctx, favored_team, underdog, spread, over_under):
+
+    #Verify Spread and over_under are reasonable
+    #Make sure these lines haven't been opened before
+
+    if (str(ctx.message.author) in whitelist):
+        await houseLine(ctx, "{0}{1}spread".format(favored_team, underdog), "{0} beats {1} by {2}. Line locks at Kickoff.".format(favored_team, underdog, spread))
+        await houseLine(ctx, "{0}{1}OU".format(favored_team, underdog), "{0} and {1} have a combined score of {2}. Line locks at Kickoff.".format(favored_team, underdog, over_under))
+    else:
+        await bot.say("Only whitelisted users can perform this action")
+
 @bot.command(pass_context=True, brief="", description="")
 async def over(ctx, userLine, amount):
     await overunder(ctx, userLine, amount, "over")
