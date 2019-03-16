@@ -7,10 +7,10 @@ from tinydb import TinyDB, Query, where
 from discord.utils import get
 from tinydb.operations import delete
 import random
+import functions
 import re
 import importlib
 import Config
-import functions
 from DateTimeSerializer import DateTimeSerializer
 from datetime import datetime
 from tinydb_serialization import Serializer, SerializationMiddleware
@@ -87,7 +87,7 @@ query = Query()
 @bot.event
 async def on_ready():
     print("ready")
-#    await bot.send_message(discord.Object(id='490306602545446932'), 'Up and running!')
+    #await bot.send_message(discord.Object(id='490306602545446932'), 'Up and running!')
 
 @bot.event
 async def on_error():
@@ -246,7 +246,7 @@ async def lockLine(ctx, line):
 async def lock(ctx, line):
     await lockLine(ctx, line)
 
-@bot.command(pass_context=True,name="o/u", brief="Opens a line", description="Opens a line to betting. The first word following o/u will be the line name and all subsequent text will be used as teh description of the line.")
+@bot.command(pass_context=True,name="o/u", brief="Opens a line", description="Opens a line to betting. The first word following o/u will be the line name and all subsequent text will be used as the description of the line.")
 async def ou(ctx, line, *, description):
     activeLine = lines.get(query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE))
 
@@ -593,11 +593,26 @@ async def bounty(ctx, user: discord.Member, amount, *, description="finding a bu
         await bot.say("User is not registered in the system")
     elif not amount.isdigit():
         await bot.say("Bounty must be a positive integer")
-    elif int(amount) > 100:
-        await bot.say("Max bounty is 100 RAB")
+    elif int(amount) > 1000:
+        await bot.say("Max bounty is 1000 RAB")
     else:
         users.update({'money': (user['money'] + int(amount))}, query.name == user['name'])
         await bot.say("{0} has been awarded a bounty of {1} RA Bucks for {2}!".format(user['name'], int(amount), description))
+
+@bot.command(pass_context=True, brief="", description="")
+async def mint(ctx, amount):
+
+    user = users.get(query.name == "House")
+
+    if not str(ctx.message.author) in modlist:
+        await bot.say("Only mods can award bounties")
+    elif not amount.isdigit():
+        await bot.say("Bounty must be a positive integer")
+    elif int(amount) > 10000:
+        await bot.say("Max bounty is 10000 RAB")
+    else:
+        users.update({'money': (user['money'] + int(amount))}, query.name == user['name'])
+        await bot.say("{0} has printed {1} RA Bucks!".format(user['name'], int(amount)))
 
 
 @bot.command(pass_context=True, brief="", description="")
@@ -644,8 +659,8 @@ async def overunder(ctx, userLine, amount, ou):
         await bot.say("You cannot bet on your own line")
     elif not amount.isdigit():
         await bot.say("Your bet must be a positive integer")
-    elif int(amount) > 100:
-        await bot.say("The max bet is 100 RABucks")
+    elif int(amount) > 1000:
+        await bot.say("The max bet is 1000 RABucks")
     elif line['locked']:
         await bot.say("The betting is locked for {}".format(line['line']))
     else:
@@ -709,7 +724,8 @@ async def cancel(ctx, userLine=""):
 async def rand(ctx, amount="0", picked_line_name=""):
 
     if amount == "0":
-        amount = str(random.randint(1,101))
+        amount = str(random.randint(1,1001))
+        #amount = str(random.randint(1,101))
 
     if amount == "a positive integer":
         await bot.say("I bet you think your pretty fuckin clever don't you? Fuck off ya cheeky twat.")
@@ -717,8 +733,8 @@ async def rand(ctx, amount="0", picked_line_name=""):
     elif not amount.isdigit():
         await bot.say("Your bet must be a positive integer. Dumb Bitch")
         return
-    elif int(amount) > 100:
-        await bot.say("The max bet is 100 RABucks")
+    elif int(amount) > 1000:
+        await bot.say("The max bet is 1000 RABucks")
         return
 
     # not own
@@ -774,6 +790,8 @@ async def nou(ctx, user: discord.Member = None):
     if (user is None):
         emoji = get(bot.get_all_emojis(), name='nou')
         await bot.say(emoji)
+    elif (str(ctx.message.author) == "box_of_rockz#2813"):
+        await bot.say("Fuck Off Box")
     elif (str(ctx.message.author) == "pollytheparrot#4919"):
         await bot.say("This is not for you Polly")
     elif (str(ctx.message.author) in modlist):
@@ -843,6 +861,5 @@ async def contributeFunc(ctx):
     await bot.say("The Don is now Open source\r\nhttps://github.com/ArtificialBadger/TheDon")
 
 bot.run(app_secret)
-
 
 
