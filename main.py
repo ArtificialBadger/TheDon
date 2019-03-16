@@ -16,6 +16,7 @@ from datetime import datetime
 from tinydb_serialization import Serializer, SerializationMiddleware
 from pytz import timezone
 import sys
+import uuid
 
 sys.setrecursionlimit(100000)
 
@@ -56,6 +57,8 @@ class HistoricalLine:
         self.resolution = resolution
         self.description = description
         self.timeResolved = timeResolved
+
+uuid = uuid.uuid1()
 
 modlist = Config.modlist
 whitelist = Config.whitelist
@@ -860,6 +863,22 @@ async def openSource(ctx):
 async def contributeFunc(ctx):
     await bot.say("The Don is now Open source\r\nhttps://github.com/ArtificialBadger/TheDon")
 
-bot.run(app_secret)
+@bot.command(pass_context=True, brief="Checks the bots status")
+async def health(ctx):
+    await bot.say("Up and Running! " + str(uuid))
 
+@bot.command(pass_context=True)
+async def stop(ctx, kill_id):
+    if (str(ctx.message.author) in modlist):
+        if kill_id == str(uuid):
+            await bot.say("Stopping Don with ID " + str(uuid))
+            await bot.logout()
+        else:
+            await bot.say("Not stopping Don with ID " + str(uuid))
+    else:
+        await bot.say("Only mods can stop The Don bot")
+
+print("start")
+bot.run(app_secret)
+print("stop")
 
