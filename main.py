@@ -796,6 +796,15 @@ async def rand(ctx, amount="0", picked_line_name=""):
         await overunder(ctx, picked_line_name, amount, randomPosition)
 
 @bot.command(pass_context=True, brief ="", description="")
+async def autogame(ctx, favored_team, underdog, spread, over_under, locktime):
+    dt = parser.parse(locktime)
+    if (str(ctx.message.author) in whitelist):
+        await houseLine(ctx, "{0}{1}spread".format(favored_team, underdog), "{0} beats {1} by {2}. Line locks at {3}.".format(favored_team, underdog, spread, functions.to_time(dt)), dt)
+        await houseLine(ctx, "{0}{1}OU".format(favored_team, underdog), "{0} and {1} have a combined score of {2}. Line locks at {3}.".format(favored_team, underdog, over_under, functions.to_time(dt)), dt)
+    else:
+        await bot.say("Only whitelisted users can perform this action")
+
+@bot.command(pass_context=True, brief ="", description="")
 async def game(ctx, favored_team, underdog, spread, over_under):
 
     #Verify Spread and over_under are reasonable
