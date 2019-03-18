@@ -11,6 +11,7 @@ import functions
 import re
 import importlib
 import Config
+from dateutil import parser
 from DateTimeSerializer import DateTimeSerializer
 from datetime import datetime
 from tinydb_serialization import Serializer, SerializationMiddleware
@@ -34,11 +35,12 @@ class Bet:
         self.time = time
 
 class Line:
-    def __init__(self, host, line, description="", locked=False):
+    def __init__(self, host, line, description="", locked=False, locktime=None):
         self.host = host
         self.line = line
         self.description = description
         self.locked = locked
+        self.locktime = locktime
 
 class HistoricalBet:
     def __init__(self, user, line, position, wager, won, timePlaced, timeResolved):
@@ -162,7 +164,23 @@ async def purge(ctx, table):
     else:
         await bot.say("Purging is disallowed. Set the allow_purge flag to True to allow purging")
 
-async def houseLine(ctx, line, description):
+@bot.command(pass_context=True, brief="Notify @AB to remove this for a 100 RAB Bounty, or do it yourself for 1000 RAB")
+async def test_line(ctx):
+    await houseLine(ctx, "testline", "used to test autolocking")
+
+@bot.command(pass_context=True, brief="Notify @AB to remove this for a 100 RAB Bounty, or do it yourself for 1000 RAB")
+async def test_locking_line(ctx, locktime):
+    dt = parser.parse(locktime)
+    await houseLine(ctx, "testline", "used to test autolocking with a datetime", dt)
+
+@bot.command(pass_context=True)
+async def autolock(ctx, line, locktime):
+    localtime = functions.my_parser(locktime)
+    dt = parser.parse(functions.from_time(localtime))
+    lines.update({'locktime': dt}, query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE))
+    await bot.say(line + " has been autolocked at " + functions.to_time(dt))
+
+async def houseLine(ctx, line, description, locktime = datetime.max):
     activeLine = lines.get(query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE))
 
     if not activeLine is None:
@@ -171,7 +189,7 @@ async def houseLine(ctx, line, description):
         house = users.get(query.name == "House")
         users.update({'money': (house['money'] + 10)}, query.name == "House")
 
-        dbLine = Line("House", line, description)
+        dbLine = Line("House", line, description, False, locktime)
         lines.insert(vars(dbLine))
         embed = discord.Embed(title="Line Opened", description="A new House Line has been opened", color=0xffffff)
         embed.add_field(name="Line", value=line)
@@ -482,7 +500,14 @@ async def info(ctx, line):
 
     embed = discord.Embed(title=activeLine['line'], description=activeLine['description'], color=0xffffff)
     embed.set_author(name="Host: {0}".format(activeLine['host']))
-    embed.add_field(name="Locked" , value = activeLine['locked'])
+    if (activeLine['locked']):
+        embed.add_field(name="Locked" , value = True)
+    elif (datetime.utcnow() > activeLine['locktime']):
+        await lockLine(ctx, line)
+        embed.add_field(name="Locked" , value = True)
+    else:
+        embed.add_field(name="Locked" , value = False)
+
     overText = ""
     underText = ""
     for bet in bets.search(query.line.matches('^' + re.escape(line) + '$', re.IGNORECASE)):
@@ -666,6 +691,8 @@ async def overunder(ctx, userLine, amount, ou):
         await bot.say("The max bet is 1000 RABucks")
     elif line['locked']:
         await bot.say("The betting is locked for {}".format(line['line']))
+    elif datetime.utcnow() > line['locktime']:
+        await lockLine(ctx, userLine)
     else:
         house = users.get(query.name == "House")
         users.update({'money': (house['money'] + 5)}, query.name == "House")
