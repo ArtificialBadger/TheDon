@@ -173,7 +173,7 @@ async def test_locking_line(ctx, locktime):
     dt = parser.parse(locktime)
     await houseLine(ctx, "testline", "used to test autolocking with a datetime", dt)
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="lock time has to be something like 2019-03-18T20:00")
 async def autolock(ctx, line, locktime):
     localtime = functions.my_parser(locktime)
     dt = parser.parse(functions.from_time(localtime))
