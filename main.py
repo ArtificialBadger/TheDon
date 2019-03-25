@@ -454,16 +454,16 @@ async def myLinesFunc(ctx):
     embed = discord.Embed(title="All Lines", desciption="Lines with and without bets", color=0xffffff)
 
     if len(ownedLines) > 0:
-        embed.add_field(name="Lines you are hosting", value="\r\n ".join(ownedLines))
+        embed.add_field(name="Lines you are hosting", value="\r\n ".join(ownedLines[:25]))
 
     if len(myLines) > 0:
-        embed.add_field(name="Lines you have a bet on", value="\r\n ".join(myLines))
+        embed.add_field(name="Lines you have a bet on", value="\r\n ".join(myLines[:25]))
 
     if len(notMyLines) > 0:
-        embed.add_field(name="Lines you do not have a bet on", value="\r\n ".join(notMyLines))
+        embed.add_field(name="Lines you do not have a bet on", value="\r\n ".join(notMyLines[:25]))
 
     if len(lockedLines) > 0:
-        embed.add_field(name="Locked Lines", value="\r\n ".join(lockedLines))
+        embed.add_field(name="Locked Lines", value="\r\n ".join(lockedLines[:25]))
 
     await bot.say(embed=embed)
 
@@ -502,7 +502,7 @@ async def info(ctx, line):
     embed.set_author(name="Host: {0}".format(activeLine['host']))
     if (activeLine['locked']):
         embed.add_field(name="Locked" , value = True)
-    elif (datetime.utcnow() > activeLine['locktime']):
+    elif activeLine['locktime'] is not None and datetime.utcnow() > activeLine['locktime']:
         await lockLine(ctx, line)
         embed.add_field(name="Locked" , value = True)
     else:
@@ -691,7 +691,7 @@ async def overunder(ctx, userLine, amount, ou):
         await bot.say("The max bet is 1000 RABucks")
     elif line['locked']:
         await bot.say("The betting is locked for {}".format(line['line']))
-    elif datetime.utcnow() > line['locktime']:
+    elif line['locktime'] is not None and datetime.utcnow() > line['locktime']:
         await lockLine(ctx, userLine)
     else:
         house = users.get(query.name == "House")
@@ -797,7 +797,8 @@ async def rand(ctx, amount="0", picked_line_name=""):
 
 @bot.command(pass_context=True, brief ="", description="")
 async def autogame(ctx, favored_team, underdog, spread, over_under, locktime):
-    dt = parser.parse(locktime)
+    localtime = functions.my_parser(locktime)
+    dt = parser.parse(functions.from_time(localtime))
     if (str(ctx.message.author) in whitelist):
         await houseLine(ctx, "{0}{1}spread".format(favored_team, underdog), "{0} beats {1} by {2}. Line locks at {3}.".format(favored_team, underdog, spread, functions.to_time(dt)), dt)
         await houseLine(ctx, "{0}{1}OU".format(favored_team, underdog), "{0} and {1} have a combined score of {2}. Line locks at {3}.".format(favored_team, underdog, over_under, functions.to_time(dt)), dt)
@@ -852,6 +853,12 @@ async def pinksock(ctx):
 async def free(ctx):
     embed = discord.Embed()
     embed.set_image(url='https://media.giphy.com/media/5wWf7GMbT1ZUGTDdTqM/giphy.gif')
+    await bot.say(embed=embed)
+
+@bot.command(pass_context=True, brief="", description="")
+async def neat(ctx):
+    embed = discord.Embed()
+    embed.set_image(url='https://i.imgur.com/Y4YFthE.gif')
     await bot.say(embed=embed)
 
 @bot.command(pass_context=True, brief="", description="")
