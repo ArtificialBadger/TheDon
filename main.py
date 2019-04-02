@@ -125,6 +125,10 @@ async def money(ctx):
     if user is not None:
         await bot.say("You have {} RABucks".format(user['money']))
 
+@bot.command(pass_context=True, brief="", description="")
+async def BoxWagon(ctx):
+    await bot.say(functions.random_team())
+
 @bot.command(pass_context=True, brief="Purges all the data", description="Very dangerous command\r\nOnly invokeable by mods with the allow_puges flag set to true")
 async def purgeAll(ctx):
     if Config.allow_purges:
