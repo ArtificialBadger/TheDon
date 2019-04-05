@@ -125,8 +125,8 @@ async def money(ctx):
     if user is not None:
         await bot.say("You have {} RABucks".format(user['money']))
 
-@bot.command(pass_context=True, brief="", description="")
-async def BoxWagon(ctx):
+@bot.command(pass_context=True, brief="Gets a team for Box to cheer for", description="Gives a random team for Box to cheer for. Changes daily.")
+async def boxwagon(ctx):
     await bot.say(functions.random_team())
 
 @bot.command(pass_context=True, brief="Purges all the data", description="Very dangerous command\r\nOnly invokeable by mods with the allow_puges flag set to true")
@@ -889,6 +889,19 @@ async def RAsilver(ctx):
 async def silverFunc(ctx):
     embed = discord.Embed(color=0xc0c0c0)
     embed.set_image(url='https://i.imgur.com/m1PudkI.jpg')
+    await bot.say(embed=embed)
+
+@bot.command(pass_context=True, brief="", description="")
+async def Bart(ctx):
+    await bart_meme_func(ctx)
+
+@bot.command(pass_context=True, brief="", description="")
+async def bartdad(ctx):
+    await bart_meme_func(ctx)
+
+async def bart_meme_func(ctx):
+    embed = discord.Embed(color=0x00cc00)
+    embed.set_image(url=functions.bart_image())
     await bot.say(embed=embed)
 
 @bot.command(pass_context=True, brief="Information about the Open Source Repo", description="Shows information about The Don bot and links to the repo location")
