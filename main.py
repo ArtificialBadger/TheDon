@@ -60,6 +60,12 @@ class HistoricalLine:
         self.description = description
         self.timeResolved = timeResolved
 
+class Meme:
+    def __init__(self, creator, name, link):
+        self.creator = creator
+        self.name = name
+        self.link = link
+
 uuid = uuid.uuid1()
 
 modlist = Config.modlist
@@ -87,6 +93,8 @@ lines = TinyDB('lines.json', storage=serialization2)
 historical_bets = TinyDB('pastBets.json', storage=serialization3)
 historical_lines = TinyDB('pastLines.json', storage=serialization4)
 
+memes = TinyDB('memes.json')
+
 query = Query()
 
 @bot.event
@@ -97,6 +105,34 @@ async def on_ready():
 @bot.event
 async def on_error():
     await bot.say("U wot m8?")
+
+@bot.event
+async def on_message(message):
+    if "lamar" in message.content.lower():
+        await bot.say("Llama")
+
+    await bot.process_commands(message)
+
+
+@bot.command(pass_context=True)
+async def meme(ctx, meme_name, image_link):
+    current_meme_list = memes.search(query.name == meme_name)
+    if len(current_meme_list) > 0:
+        await bot.say("That is already a registered meme you Dumbo");
+    else:
+        memes.insert(vars(Meme(str(ctx.message.author), meme_name, image_link)))
+        await bot.say("Registered new meme!");
+
+@bot.command(pass_context=True)
+async def unmeme(ctx, meme_name):
+    memes.remove(query.name == meme_name)
+    await bot.say("Killed the meme dream!")
+
+@bot.command(pass_context=True)
+async def allbart(ctx):
+    meme_list = memes.all()
+    for meme in meme_list:
+        await bot.say(meme)
 
 @bot.command(pass_context=True, brief="Sets a user up with {0} {1}".format(Config.starting_amount, Config.currency_code), description="Initializes a user with {0} {1} and allows them to begin placing bets. All users need to call this function before being able to place bets or open lines.".format(Config.starting_amount, Config.currency))
 async def ImALittleBitch(ctx):
@@ -901,7 +937,9 @@ async def bartdad(ctx):
 
 async def bart_meme_func(ctx):
     embed = discord.Embed(color=0x00cc00)
-    embed.set_image(url=functions.bart_image())
+    meme_list = memes.all()
+    random.shuffle(meme_list)
+    embed.set_image(url=meme_list[0]['link'])
     await bot.say(embed=embed)
 
 @bot.command(pass_context=True, brief="Information about the Open Source Repo", description="Shows information about The Don bot and links to the repo location")
