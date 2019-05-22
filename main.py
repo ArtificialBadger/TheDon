@@ -66,6 +66,10 @@ class Meme:
         self.name = name
         self.link = link
 
+class Answer:
+    def __init__(self, response):
+        self.response = response
+
 uuid = uuid.uuid1()
 
 modlist = Config.modlist
@@ -94,6 +98,7 @@ historical_bets = TinyDB('pastBets.json', storage=serialization3)
 historical_lines = TinyDB('pastLines.json', storage=serialization4)
 
 memes = TinyDB('memes.json')
+eightball = TinyDB('8ball.json')
 
 query = Query()
 
@@ -124,15 +129,31 @@ async def meme(ctx, meme_name, image_link):
         await bot.say("Registered new meme!");
 
 @bot.command(pass_context=True)
+async def respond(ctx, *, response):
+    current_answer_list = eightball.search(query.name == response)
+    if len(current_answer_list) > 0:
+        await bot.say("Thats already a response");
+    else:
+        eightball.insert(vars(Answer(response)))
+        await bot.say("Registered new response!");
+
+@bot.command(pass_context=True)
 async def unmeme(ctx, meme_name):
     memes.remove(query.name == meme_name)
     await bot.say("Killed the meme dream!")
 
 @bot.command(pass_context=True)
+async def unrespond(ctx, *, response):
+    eightball.remove(query.response == response)
+    await bot.say("Removed that ish")
+
+@bot.command(pass_context=True)
 async def allbart(ctx):
     meme_list = memes.all()
-    for meme in meme_list:
-        await bot.say(meme)
+    embed = discord.Embed(title="Bart Memes", color=0x1a2b3c)
+    memetext = len(meme_list)
+    embed.add_field(name="Number of Bart Memes", value=memetext)
+    await bot.say(embed=embed)
 
 @bot.command(pass_context=True, brief="Sets a user up with {0} {1}".format(Config.starting_amount, Config.currency_code), description="Initializes a user with {0} {1} and allows them to begin placing bets. All users need to call this function before being able to place bets or open lines.".format(Config.starting_amount, Config.currency))
 async def ImALittleBitch(ctx):
@@ -942,6 +963,12 @@ async def bart_meme_func(ctx):
     embed.set_image(url=meme_list[0]['link'])
     await bot.say(embed=embed)
 
+@bot.command(pass_context=True, brief="", description="")
+async def ask(ctx, *, question):
+    answer_list = eightball.all()
+    random.shuffle(answer_list)
+    await bot.say(answer_list[0]['response'])
+
 @bot.command(pass_context=True, brief="Information about the Open Source Repo", description="Shows information about The Don bot and links to the repo location")
 async def git(ctx):
     await contributeFunc(ctx)
@@ -960,7 +987,7 @@ async def openSource(ctx):
 
 async def contributeFunc(ctx):
     await bot.say("The Don is now Open source\r\nhttps://github.com/ArtificialBadger/TheDon")
-
+    
 @bot.command(pass_context=True, brief="Checks the bots status")
 async def health(ctx):
     await bot.say("Up and Running! " + str(uuid))
