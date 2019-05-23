@@ -987,7 +987,11 @@ async def openSource(ctx):
 
 async def contributeFunc(ctx):
     await bot.say("The Don is now Open source\r\nhttps://github.com/ArtificialBadger/TheDon")
-    
+
+@bot.command(pass_context=True, brief="", description="")
+async def zoop(ctx):
+    await bot.say(':point_left: :sunglasses: :point_left:')
+
 @bot.command(pass_context=True, brief="Checks the bots status")
 async def health(ctx):
     await bot.say("Up and Running! " + str(uuid))
