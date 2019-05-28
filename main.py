@@ -70,7 +70,7 @@ class Answer:
     def __init__(self, response):
         self.response = response
 
-uuid = uuid.uuid1()
+instance_id = uuid.uuid1()
 
 modlist = Config.modlist
 whitelist = Config.whitelist
@@ -106,15 +106,18 @@ query = Query()
 async def on_ready():
     print("ready")
     #await bot.send_message(discord.Object(id='490306602545446932'), 'Up and running!')
-
-@bot.event
-async def on_error():
-    await bot.say("U wot m8?")
+#@bot.event
+#async def on_error(a, b):
+#    print(str(a))
+#    print(str(b))
+    #await b.channel.send("U wot m8?")
 
 @bot.event
 async def on_message(message):
-    if "lamar" in message.content.lower():
-        await bot.say("Llama")
+    if not message.author.bot and "lamar" in message.content.lower():
+        llamaString = message.content.replace('Lamar', 'Llama')
+        newString = re.compile("lamar", re.IGNORECASE)
+        await bot.send_message(message.channel, newString.sub('llama', llamaString))
 
     await bot.process_commands(message)
 
@@ -969,20 +972,8 @@ async def ask(ctx, *, question):
     random.shuffle(answer_list)
     await bot.say(answer_list[0]['response'])
 
-@bot.command(pass_context=True, brief="Information about the Open Source Repo", description="Shows information about The Don bot and links to the repo location")
-async def git(ctx):
-    await contributeFunc(ctx)
-
-@bot.command(pass_context=True, brief="Information about the Open Source Repo", description="Shows information about The Don bot and links to the repo location")
+@bot.command(pass_context=True, brief="Information about the Open Source Repo", description="Shows information about The Don bot and links to the repo location", aliases = ["git", "github", "opensource", "openSource"])
 async def contribute(ctx):
-    await contributeFunc(ctx)
-
-@bot.command(pass_context=True, brief="Information about the Open Source Repo", description="Shows information about The Don bot and links to the repo location")
-async def opensource(ctx):
-    await contributeFunc(ctx)
-
-@bot.command(pass_context=True, brief="Information about the Open Source Repo", description="Shows information about The Don bot and links to the repo location")
-async def openSource(ctx):
     await contributeFunc(ctx)
 
 async def contributeFunc(ctx):
@@ -994,16 +985,16 @@ async def zoop(ctx):
 
 @bot.command(pass_context=True, brief="Checks the bots status")
 async def health(ctx):
-    await bot.say("Up and Running! " + str(uuid))
+    await bot.say("Up and Running! " + str(instance_id))
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, brief="Stops an instance of the bot if with the given ID")
 async def stop(ctx, kill_id):
     if (str(ctx.message.author) in modlist):
-        if kill_id == str(uuid):
-            await bot.say("Stopping Don with ID " + str(uuid))
+        if kill_id == str(instance_id):
+            await bot.say("Stopping Don with ID " + str(instance_id))
             await bot.logout()
         else:
-            await bot.say("Not stopping Don with ID " + str(uuid))
+            await bot.say("Not stopping Don with ID " + str(instance_id))
     else:
         await bot.say("Only mods can stop The Don bot")
 
