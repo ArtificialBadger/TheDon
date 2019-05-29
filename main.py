@@ -983,6 +983,11 @@ async def contributeFunc(ctx):
 async def zoop(ctx):
     await bot.say(':point_left: :sunglasses: :point_left:')
 
+@bot.command(pass_context=True, brief="", description="")
+async def frank(ctx):
+    emoji = get(bot.get_all_emojis(), name='bigfrank')
+    await bot.say(emoji)
+  
 @bot.command(pass_context=True, brief="Checks the bots status")
 async def health(ctx):
     await bot.say("Up and Running! " + str(instance_id))
