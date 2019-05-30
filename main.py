@@ -987,6 +987,12 @@ async def zoop(ctx):
 async def frank(ctx):
     emoji = get(bot.get_all_emojis(), name='bigfrank')
     await bot.say(emoji)
+    
+@bot.command(pass_context=True, brief="", description="")
+async def bigfrank(ctx):
+    embed = discord.Embed()
+    embed.set_image(url='https://i.imgur.com/N5bjEMl.png')
+    await bot.say(embed=embed)    
   
 @bot.command(pass_context=True, brief="Checks the bots status")
 async def health(ctx):
