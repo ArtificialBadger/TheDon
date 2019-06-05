@@ -982,6 +982,10 @@ async def contributeFunc(ctx):
 @bot.command(pass_context=True, brief="", description="")
 async def zoop(ctx):
     await bot.say(':point_left: :sunglasses: :point_left:')
+    
+@bot.command(pass_context=True, brief="", description="")
+async def pooz(ctx):
+    await bot.say(':point_right: :sunglasses: :point_right:')
 
 @bot.command(pass_context=True, brief="", description="")
 async def frank(ctx):
