@@ -18,57 +18,9 @@ from tinydb_serialization import Serializer, SerializationMiddleware
 from pytz import timezone
 import sys
 import uuid
+from models import Line, User, Bet, HistoricalLine, HistoricalBet, Meme, Answer
 
 sys.setrecursionlimit(100000)
-
-class User:
-    def __init__(self, name, money):
-        self.name = name
-        self.money = money
-
-class Bet:
-    def __init__(self, user, line, bet, wager, time):
-        self.user = user
-        self.line = line
-        self.bet = bet
-        self.wager = wager
-        self.time = time
-
-class Line:
-    def __init__(self, host, line, description="", locked=False, locktime=None):
-        self.host = host
-        self.line = line
-        self.description = description
-        self.locked = locked
-        self.locktime = locktime
-
-class HistoricalBet:
-    def __init__(self, user, line, position, wager, won, timePlaced, timeResolved):
-        self.user = user
-        self.line = line
-        self.position = position
-        self.wager = wager
-        self.won = won
-        self.timePlaced = timePlaced
-        self.timeResolved = timeResolved
-
-class HistoricalLine:
-    def __init__(self, host, line, resolution, description, timeResolved):
-        self.host = host
-        self.line = line
-        self.resolution = resolution
-        self.description = description
-        self.timeResolved = timeResolved
-
-class Meme:
-    def __init__(self, creator, name, link):
-        self.creator = creator
-        self.name = name
-        self.link = link
-
-class Answer:
-    def __init__(self, response):
-        self.response = response
 
 instance_id = uuid.uuid1()
 
@@ -980,9 +932,54 @@ async def contributeFunc(ctx):
     await bot.say("The Don is now Open source\r\nhttps://github.com/ArtificialBadger/TheDon")
 
 @bot.command(pass_context=True, brief="", description="")
+async def zoopking(ctx):
+
+    message = await bot.say(':point_up: :sunglasses: :point_up:')
+
+    for x in range(5):
+
+        await asyncio.sleep(.25)
+
+        if x % 4 == 0:
+            await bot.edit_message(message, ':point_left: :sunglasses: :point_left:')
+
+        elif x % 4 == 1:
+            await bot.edit_message(message, ':point_down: :sunglasses: :point_down:')
+
+        elif x % 4 == 2:
+            await bot.edit_message(message, ':point_right: :sunglasses: :point_right:')
+
+        elif x % 4 == 3:
+            await bot.edit_message(message, ':point_up: :sunglasses: :point_up:')
+
+@bot.command(pass_context=True, brief="", description="")
+async def zoopsalute(ctx):
+
+    message = await bot.say(':point_up: :sunglasses: :point_up: :point_up: :sunglasses: :point_up:')
+
+    for x in range(5):
+
+        await asyncio.sleep(.25)
+
+        if x % 4 == 0:
+            await bot.edit_message(message, ':point_right: :sunglasses: :point_right: :point_left: :sunglasses: :point_left:')
+
+        elif x % 4 == 1:
+            await bot.edit_message(message, ':point_down: :sunglasses: :point_down: :point_down: :sunglasses: :point_down:')
+
+        elif x % 4 == 2:
+            await bot.edit_message(message, ':point_left: :sunglasses: :point_left: :point_right: :sunglasses: :point_right:')
+
+        elif x % 4 == 3:
+            await bot.edit_message(message, ':point_up: :sunglasses: :point_up: :point_up: :sunglasses: :point_up:')
+
+
+
+@bot.command(pass_context=True, brief="", description="")
 async def zoop(ctx):
     await bot.say(':point_left: :sunglasses: :point_left:')
-    
+
+
 @bot.command(pass_context=True, brief="", description="")
 async def pooz(ctx):
     await bot.say(':point_right: :sunglasses: :point_right:')
@@ -991,13 +988,13 @@ async def pooz(ctx):
 async def frank(ctx):
     emoji = get(bot.get_all_emojis(), name='bigfrank')
     await bot.say(emoji)
-    
+
 @bot.command(pass_context=True, brief="", description="")
 async def bigfrank(ctx):
     embed = discord.Embed()
     embed.set_image(url='https://i.imgur.com/N5bjEMl.png')
-    await bot.say(embed=embed)    
-  
+    await bot.say(embed=embed)
+
 @bot.command(pass_context=True, brief="Checks the bots status")
 async def health(ctx):
     await bot.say("Up and Running! " + str(instance_id))
