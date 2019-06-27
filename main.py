@@ -110,7 +110,7 @@ async def allbart(ctx):
     embed.add_field(name="Number of Bart Memes", value=memetext)
     await bot.say(embed=embed)
 
-@bot.command(pass_context=True, brief="Sets a user up with {0} {1}".format(Config.starting_amount, Config.currency_code), description="Initializes a user with {0} {1} and allows them to begin placing bets. All users need to call this function before being able to place bets or open lines.".format(Config.starting_amount, Config.currency))
+@bot.command(pass_context=True, aliases = ["imalittlebitch", "IAmALittleBitch", "iamalittlebitch"], brief="Sets a user up with {0} {1}".format(Config.starting_amount, Config.currency_code), description="Initializes a user with {0} {1} and allows them to begin placing bets. All users need to call this function before being able to place bets or open lines.".format(Config.starting_amount, Config.currency))
 async def ImALittleBitch(ctx):
     accounts = users.search(query.name == str(ctx.message.author))
     if len(accounts) > 0:
@@ -179,15 +179,6 @@ async def purge(ctx, table):
             await bot.say("You are not authorized to purge")
     else:
         await bot.say("Purging is disallowed. Set the allow_purge flag to True to allow purging")
-
-@bot.command(pass_context=True, brief="Notify @AB to remove this for a 100 RAB Bounty, or do it yourself for 1000 RAB")
-async def test_line(ctx):
-    await houseLine(ctx, "testline", "used to test autolocking")
-
-@bot.command(pass_context=True, brief="Notify @AB to remove this for a 100 RAB Bounty, or do it yourself for 1000 RAB")
-async def test_locking_line(ctx, locktime):
-    dt = parser.parse(locktime)
-    await houseLine(ctx, "testline", "used to test autolocking with a datetime", dt)
 
 @bot.command(pass_context=True, brief="lock time has to be something like 2019-03-18T20:00")
 async def autolock(ctx, line, locktime):
