@@ -127,7 +127,7 @@ async def leaderboard(ctx):
     orderedUsers = sorted(orderedUsers, key=lambda u: u.money)
     orderedUsers.reverse()
     if len(orderedUsers) > 25:
-        leaderboard_users = orderedUsers[0:21] + [ orderedUsers[-3] ]
+        leaderboard_users = orderedUsers[0:21] + orderedUsers[-3:]
     else:
         leaderboard_users = orderedUsers
 
