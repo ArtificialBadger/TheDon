@@ -126,8 +126,13 @@ async def leaderboard(ctx):
         orderedUsers.append(User(user['name'], user['money']))
     orderedUsers = sorted(orderedUsers, key=lambda u: u.money)
     orderedUsers.reverse()
-    embed = discord.Embed(title="Leaderboard", description="Users ranked by money\r\nhttp://www.ragambling.info/leaderboard", color=0xffffff)
-    for user2 in orderedUsers:
+    if len(orderedUsers) > 25:
+        leaderboard_users = orderedUsers[0:21] + [ orderedUsers[-3] ]
+    else:
+        leaderboard_users = orderedUsers
+
+    embed = discord.Embed(title="Leaderboard", description="Users ranked by money", color=0xffffff)
+    for user2 in leaderboard_users:
         embed.add_field(name=user2.name, value=user2.money)
     await bot.say(embed=embed)
 
