@@ -17,6 +17,8 @@ from datetime import datetime
 from tinydb_serialization import Serializer, SerializationMiddleware
 from pytz import timezone
 import sys
+import requests
+import json
 import uuid
 from models import Line, User, Bet, HistoricalLine, HistoricalBet, Meme, Answer
 
@@ -219,6 +221,58 @@ async def house(ctx, line, *, description=""):
 @bot.command(pass_context=True, name="BurtReynolds", brief="Opens a House line called Drive", description="Opens a house line called Drive. Created specifically for Dustin on his daily commutes.")
 async def drive(ctx, *, description):
     await houseLine(ctx, "Drive", description)
+
+@bot.command(pass_context=True)
+async def croot(ctx, year, *, name):
+
+    url = 'https://247sports.com/Season/{}-Football/Recruits.json?&Items=15&Page=1&Player.FullName={}'.format(year, name)
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36'}
+    search = requests.get(url=url, headers=headers)
+    search = json.loads(search.text)
+    if not search:
+        await bot.say('wut')
+    elif len(search) > 1:
+        searched = search[0]
+    else:
+        searched = search[0]
+
+    player = search[0]['Player']
+    full_name = player['FullName']
+    position = player['PrimaryPlayerPosition']['Abbreviation']
+
+    height = player['Height'].split('-')[1]
+    if float(height).is_integer():
+        inches = int(height)
+    else:
+        inches = height
+
+    measurables = str(int(player['Height'].split('-')[0])) + 'ft ' + str(inches) + 'in\r\n' + str(int(player['Weight'])) + 'lbs' + '\r\n'
+
+    #rankings = player['CompositeStarRating']
+    rankings = ':star:' * int(player['CompositeStarRating'])
+    rankings_body = '%.5f' % float(player['CompositeRating'])
+    rankings_body += '\n#' + str(int(player['NationalRank'])) + ' Overall'
+    rankings_body += '\n#' + str(int(player['PositionRank'])) + ' Position'
+    rankings_body += '\n#' + str(int(player['StateRank'])) + ' State'
+
+    a = player['PlayerHighSchool']['Name']
+    b = player['Hometown']['City'] + ' ' + player['Hometown']['State']
+    measurables += b
+
+    embed = discord.Embed(title=full_name + ' - '+ player['PrimaryPlayerPosition']['Abbreviation'], desciption=position, color=0xffffff)
+
+    if searched['CommitedInstitutionTeamImage'] is not None:
+        embed.set_thumbnail(url = searched['CommitedInstitutionTeamImage'])
+    else:
+        embed.set_thumbnail(url = 'https://www.edmontoncorporatechallenge.com/Sports%20Icons/unknown-challenge.png')
+
+    embed.set_image(url = player['DefaultAssetUrl'])
+
+    embed.add_field(name=a, value=measurables)
+    embed.add_field(value=rankings_body, name=rankings)
+
+    await bot.say(embed=embed)
 
 @bot.command(pass_context=True, brief="Unlocks a line", description="Unlocks a line to further betting. Only has an effect when the line is currently locked.")
 async def unlock(ctx, line):
