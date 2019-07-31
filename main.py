@@ -20,6 +20,7 @@ import sys
 import requests
 import json
 import uuid
+import markovify
 from models import Line, User, Bet, HistoricalLine, HistoricalBet, Meme, Answer
 
 sys.setrecursionlimit(100000)
@@ -75,34 +76,51 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+@bot.command(pass_context=True)
+async def mimic(ctx):
+    megastring = ""
+    count = 0
+    async for message in ctx.history(limit=2000, oldest_first=False):
+        if str(message.author) == str(ctx.message.author) and not message.content == "" and not message.author.bot:
+            megastring += "\r\n" + message.content
+            count += 1
+
+    chain = markovify.Text(megastring)
+    sentence = chain.make_short_sentence(max_chars=150, test_output = False)
+    #await ctx.send("Count: " + str(count))
+    if sentence is None:
+        await ctx.send("No can do buckaroo")
+    else:
+        await ctx.send(sentence)
+
 
 @bot.command(pass_context=True)
 async def meme(ctx, meme_name, image_link):
     current_meme_list = memes.search(query.name == meme_name)
     if len(current_meme_list) > 0:
-        await bot.say("That is already a registered meme you Dumbo");
+        await ctx.send("That is already a registered meme you Dumbo");
     else:
         memes.insert(vars(Meme(str(ctx.message.author), meme_name, image_link)))
-        await bot.say("Registered new meme!");
+        await ctx.send("Registered new meme!");
 
 @bot.command(pass_context=True)
 async def respond(ctx, *, response):
     current_answer_list = eightball.search(query.name == response)
     if len(current_answer_list) > 0:
-        await bot.say("Thats already a response");
+        await ctx.send("Thats already a response");
     else:
         eightball.insert(vars(Answer(response)))
-        await bot.say("Registered new response!");
+        await ctx.send("Registered new response!");
 
 @bot.command(pass_context=True)
 async def unmeme(ctx, meme_name):
     memes.remove(query.name == meme_name)
-    await bot.say("Killed the meme dream!")
+    await ctx.send("Killed the meme dream!")
 
 @bot.command(pass_context=True)
 async def unrespond(ctx, *, response):
     eightball.remove(query.response == response)
-    await bot.say("Removed that ish")
+    await ctx.send("Removed that ish")
 
 @bot.command(pass_context=True)
 async def allbart(ctx):
@@ -110,16 +128,16 @@ async def allbart(ctx):
     embed = discord.Embed(title="Bart Memes", color=0x1a2b3c)
     memetext = len(meme_list)
     embed.add_field(name="Number of Bart Memes", value=memetext)
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, aliases = ["imalittlebitch", "IAmALittleBitch", "iamalittlebitch"], brief="Sets a user up with {0} {1}".format(Config.starting_amount, Config.currency_code), description="Initializes a user with {0} {1} and allows them to begin placing bets. All users need to call this function before being able to place bets or open lines.".format(Config.starting_amount, Config.currency))
 async def ImALittleBitch(ctx):
     accounts = users.search(query.name == str(ctx.message.author))
     if len(accounts) > 0:
-        await bot.say("You already have an account you dumbo")
+        await ctx.send("You already have an account you dumbo")
     else:
         users.insert(vars(User(str(ctx.message.author), Config.starting_amount)))
-        await bot.say("{0} has been given {1} {2}".format(str(ctx.message.author), Config.starting_amount, Config.currency))
+        await ctx.send("{0} has been given {1} {2}".format(str(ctx.message.author), Config.starting_amount, Config.currency))
 
 @bot.command(pass_context=True, brief="Shows the leaders in order of {0}".format(Config.currency), description="Displays a full ordering of users, ordered by {0}".format(Config.currency))
 async def leaderboard(ctx):
@@ -136,33 +154,33 @@ async def leaderboard(ctx):
     embed = discord.Embed(title="Leaderboard", description="Users ranked by money", color=0xffffff)
     for user2 in leaderboard_users:
         embed.add_field(name=user2.name, value=user2.money)
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="Shows the callers {0}".format(Config.currency), description="Shows the amount of {0} of the command invoker".format(Config.currency))
 async def money(ctx):
     user = users.get(query.name == str(ctx.message.author))
     if user is not None:
-        await bot.say("You have {} RABucks".format(user['money']))
+        await ctx.send("You have {} RABucks".format(user['money']))
 
 @bot.command(pass_context=True, brief="Gets a team for Box to cheer for", description="Gives a random team for Box to cheer for. Changes daily.")
 async def boxwagon(ctx):
-    await bot.say(functions.random_team())
+    await ctx.send(functions.random_team())
 
 @bot.command(pass_context=True, brief="Purges all the data", description="Very dangerous command\r\nOnly invokeable by mods with the allow_puges flag set to true")
 async def purgeAll(ctx):
     if Config.allow_purges:
         if (str(ctx.message.author) in modlist):
             users.purge()
-            await bot.say("Users Purged")
+            await ctx.send("Users Purged")
             bets.purge()
-            await bot.say("Bets Purged")
+            await ctx.send("Bets Purged")
             lines.purge()
-            await bot.say("Lines Purged")
+            await ctx.send("Lines Purged")
 
         else:
-            await bot.say("You are not authorized to purge")
+            await ctx.send("You are not authorized to purge")
     else:
-        await bot.say("Purging is disallowed. Set the allow_purge flag to True to allow purging")
+        await ctx.send("Purging is disallowed. Set the allow_purge flag to True to allow purging")
 
 @bot.command(pass_context=True, brief="Purges specific tables", description="Purges either the historical data, users, bets, or lines")
 async def purge(ctx, table):
@@ -170,35 +188,35 @@ async def purge(ctx, table):
         if (str(ctx.message.author) in modlist):
             if (table.lower() == "history"):
                 historical_bets.purge()
-                await bot.say("Historical Lines and Bets Purged")
+                await ctx.send("Historical Lines and Bets Purged")
             elif (table.lower() == "users"):
                 users.purge()
-                await bot.say("Users Purged")
+                await ctx.send("Users Purged")
             elif table.lower() == "bets":
                 bets.purge()
-                await bot.say("Bets Purged")
+                await ctx.send("Bets Purged")
             elif table.lower() == "lines":
                 lines.purge()
-                await bot.say("Lines Purged")
+                await ctx.send("Lines Purged")
             else:
-                await bot.say("That's not something purgable you idiot")
+                await ctx.send("That's not something purgable you idiot")
         else:
-            await bot.say("You are not authorized to purge")
+            await ctx.send("You are not authorized to purge")
     else:
-        await bot.say("Purging is disallowed. Set the allow_purge flag to True to allow purging")
+        await ctx.send("Purging is disallowed. Set the allow_purge flag to True to allow purging")
 
 @bot.command(pass_context=True, brief="lock time has to be something like 2019-03-18T20:00")
 async def autolock(ctx, line, locktime):
     localtime = functions.my_parser(locktime)
     dt = parser.parse(functions.from_time(localtime))
     lines.update({'locktime': dt}, query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE))
-    await bot.say(line + " has been autolocked at " + functions.to_time(dt))
+    await ctx.send(line + " has been autolocked at " + functions.to_time(dt))
 
 async def houseLine(ctx, line, description, locktime = datetime.max):
     activeLine = lines.get(query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE))
 
     if not activeLine is None:
-        await bot.say("Line cannot be opened. There is already an open line with the same name.")
+        await ctx.send("Line cannot be opened. There is already an open line with the same name.")
     elif str(ctx.message.author) in whitelist:
         house = users.get(query.name == "House")
         users.update({'money': (house['money'] + 10)}, query.name == "House")
@@ -210,9 +228,9 @@ async def houseLine(ctx, line, description, locktime = datetime.max):
         embed.add_field(name="Author", value="House")
         if not description == "":
             embed.add_field(name="Description", value=description)
-        await bot.say(embed=embed)
+        await ctx.send(embed=embed)
     else:
-        await bot.say("Only trusted users can open a House Line")
+        await ctx.send("Only trusted users can open a House Line")
 
 @bot.command(pass_context=True, brief="Opens a house line", description="Opens a line with the House as an owner. Generally used for lines with pre-established odds, such as Spreads and Over Unders.")
 async def house(ctx, line, *, description=""):
@@ -231,7 +249,7 @@ async def croot(ctx, year, *, name):
     search = requests.get(url=url, headers=headers)
     search = json.loads(search.text)
     if not search:
-        await bot.say('wut')
+        await ctx.send('wut')
     elif len(search) > 1:
         searched = search[0]
     else:
@@ -272,7 +290,7 @@ async def croot(ctx, year, *, name):
     embed.add_field(name=a, value=measurables)
     embed.add_field(value=rankings_body, name=rankings)
 
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="Unlocks a line", description="Unlocks a line to further betting. Only has an effect when the line is currently locked.")
 async def unlock(ctx, line):
@@ -291,20 +309,20 @@ async def unlock(ctx, line):
         canUnlock = True
 
     if not hostLine['locked']:
-        await bot.say("{} is already unlocked".format(line))
+        await ctx.send("{} is already unlocked".format(line))
     elif canUnlock:
         lines.update({'locked': False}, query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE))
-        await bot.say("Betting for {} has been unlocked, feel free to place bets".format(line))
+        await ctx.send("Betting for {} has been unlocked, feel free to place bets".format(line))
 
     else:
-        await bot.say("You cannot unlock a line you did not open")
+        await ctx.send("You cannot unlock a line you did not open")
 
 
 async def lockLine(ctx, line):
     hostLine = lines.get(query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE))
 
     if hostLine is None:
-        await bot.say("{} is not an open line".format(line))
+        await ctx.send("{} is not an open line".format(line))
         return
 
     host = hostLine['host']
@@ -321,12 +339,12 @@ async def lockLine(ctx, line):
         canLock = True
 
     if hostLine['locked']:
-        await bot.say("{} is already locked".format(hostLine['line']))
+        await ctx.send("{} is already locked".format(hostLine['line']))
     elif canLock:
         lines.update({'locked': True}, query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE))
-        await bot.say("Betting for {} has been locked. No more bets can be placed unless the line is unlocked".format(hostLine['line']))
+        await ctx.send("Betting for {} has been locked. No more bets can be placed unless the line is unlocked".format(hostLine['line']))
     else:
-        await bot.say("You cannot lock a line you did not open")
+        await ctx.send("You cannot lock a line you did not open")
 
 
 @bot.command(pass_context=True, brief="Locks a line", description="Locks a line so that no more bets can be made. Line must be unlocked for future betting to occur.")
@@ -338,7 +356,7 @@ async def ou(ctx, line, *, description):
     activeLine = lines.get(query.line.matches('^' + re.escape(line) + '$', flags=re.IGNORECASE))
 
     if not activeLine is None:
-        await bot.say("Line cannot be opened. There is already an open line with the same name.")
+        await ctx.send("Line cannot be opened. There is already an open line with the same name.")
     else:
         house = users.get(query.name == "House")
         users.update({'money': (house['money'] + 10)}, query.name == "House")
@@ -349,12 +367,12 @@ async def ou(ctx, line, *, description):
         embed.add_field(name="Line", value=line)
         embed.add_field(name="Author", value=str(ctx.message.author))
         embed.add_field(name="Description", value=description)
-        await bot.say(embed=embed)
+        await ctx.send(embed=embed)
 
 async def resolveLine(ctx, line, result, owner, description=""):
     dbLine = lines.get(query.line.matches('^' + re.escape(line) + '$', re.IGNORECASE))
     if dbLine is None:
-        await bot.say("Something has gone terribly wrong. Error code NL100")
+        await ctx.send("Something has gone terribly wrong. Error code NL100")
 
     embed = discord.Embed(title="Line Resolved - {0}".format(line), description=dbLine['description'], color=0xffffff)
 
@@ -403,7 +421,7 @@ async def resolveLine(ctx, line, result, owner, description=""):
 
 
     if len(winners) == 0 and len(losers) == 0:
-        await bot.say("There were no bets made on this line :(")
+        await ctx.send("There were no bets made on this line :(")
     else:
         houseMoney = int(lostMoney*.7)
         houseMoney -= int(wonMoney)
@@ -422,7 +440,7 @@ async def resolveLine(ctx, line, result, owner, description=""):
             embed.add_field(name="House", value="The house has gained {0} RABucks".format(houseMoney))
         else:
             embed.add_field(name="House", value="The house has lost {0} RABucks".format(0 - houseMoney))
-        await bot.say(embed=embed)
+        await ctx.send(embed=embed)
 
     bets.remove(where('line').matches('^' + re.escape(line) + '$', re.IGNORECASE))
     lines.remove(where('line').matches('^' + re.escape(line) + '$', re.IGNORECASE))
@@ -443,25 +461,25 @@ async def resolveFunc(ctx, bet, result="", description=""):
     owner = lines.get(query.line.matches('^' + re.escape(bet) + '$', re.IGNORECASE))
 
     if (owner is None):
-        await bot.say("{} is not an open line".format(bet))
+        await ctx.send("{} is not an open line".format(bet))
     elif owner['host'] == "House":
         if str(ctx.message.author) in whitelist:
             if result == "wash":
-                await bot.say("{} was a wash, everyone gets their money back!".format(owner['line']))
+                await ctx.send("{} was a wash, everyone gets their money back!".format(owner['line']))
                 bets.remove(where('line').matches('^' + re.escape(bet) + '$', re.IGNORECASE))
                 lines.remove(where('line').matches('^' + re.escape(bet) + '$', re.IGNORECASE))
             elif result == "over" or result == "under":
                 await resolveLine(ctx, bet, result, owner, description)
             else:
-                await bot.say("Result must either be \"over\", \"under\" or \"wash\"")
+                await ctx.send("Result must either be \"over\", \"under\" or \"wash\"")
         else:
-            await bot.say("You are not authorized to resolve House Lines")
+            await ctx.send("You are not authorized to resolve House Lines")
     elif str(ctx.message.author) != owner['host'] and not str(ctx.message.author) in modlist:
-        await bot.say("You cannot close a line you did not open")
+        await ctx.send("You cannot close a line you did not open")
     elif result != "over" and result != "under" and result != "wash":
-        await bot.say("Result must either be \"over\", \"under\" or \"wash\"")
+        await ctx.send("Result must either be \"over\", \"under\" or \"wash\"")
     elif result == "wash":
-        await bot.say("{} was a wash, everyone gets their money back!".format(owner['line']))
+        await ctx.send("{} was a wash, everyone gets their money back!".format(owner['line']))
         bets.remove(where('line').matches('^' + re.escape(bet) + '$', re.IGNORECASE))
         lines.remove(where('line').matches('^' + re.escape(bet) + '$', re.IGNORECASE))
     else:
@@ -496,7 +514,7 @@ async def myBetsFunc(ctx):
     if undertext != "":
         embed.add_field(name="Unders", value=undertext)
 
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 async def myLinesFunc(ctx):
     myBets = bets.search(query.user == str(ctx.message.author))
@@ -531,7 +549,7 @@ async def myLinesFunc(ctx):
     if len(lockedLines) > 0:
         embed.add_field(name="Locked Lines", value="\r\n ".join(lockedLines[:25]))
 
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="Shows all lines in relation to the caller", description="Shows all the lines that the command invoker is hosting, has bets on, and the locked and unlocked lines.")
 async def myLines(ctx):
@@ -554,14 +572,14 @@ async def linesFunc(ctx):
     embed.add_field(name="Open Lines", value=formattedOpenLines)
     embed.add_field(name="Locked Lines", value=formattedLockedLines)
     embed.set_footer(text="On Wisconsin")
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="Gives info about a specific line", description="Gives all availible info about a line")
 async def info(ctx, line):
     activeLine = lines.get(query.line.matches('^' + re.escape(line) + '$', re.IGNORECASE))
 
     if activeLine == None:
-        await bot.say("{} is not an open line".format(line))
+        await ctx.send("{} is not an open line".format(line))
         return
 
     embed = discord.Embed(title=activeLine['line'], description=activeLine['description'], color=0xffffff)
@@ -588,7 +606,7 @@ async def info(ctx, line):
     if underText != "":
         embed.add_field(name="Unders", value=underText)
 
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 
 @bot.command(pass_context=True, brief="REMOVE THIS PLZ", description="")
@@ -607,7 +625,7 @@ async def historicalLines(ctx, user: discord.Member = None):
     if historical_lines_text != "":
         embed.add_field(name="All Previous Lines", value=historical_lines_text)
 
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 
 @bot.command(pass_context=True, brief="History for a user", description="")
@@ -631,7 +649,7 @@ async def history(ctx):
         embed.add_field(name="Most Recent Bets", value=historical_bets_text)
 
 
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="REMOVE THIS PLZ", description="")
 async def historicalBets(ctx, user: discord.Member = None):
@@ -652,7 +670,7 @@ async def historicalBets(ctx, user: discord.Member = None):
     if historical_bets_text != "":
         embed.add_field(name="All Previous Bets", value=historical_bets_text)
 
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, name="bets", brief="", description="")
 async def betsFunc(ctx, user: discord.Member = None):
@@ -674,7 +692,7 @@ async def betsFunc(ctx, user: discord.Member = None):
     for key, value in betsDic.items():
         embed.add_field(name=key, value=value)
 
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="", description="")
 async def bounty(ctx, user: discord.Member, amount, *, description="finding a bug"):
@@ -682,16 +700,16 @@ async def bounty(ctx, user: discord.Member, amount, *, description="finding a bu
     user = users.get(query.name == str(user))
 
     if not str(ctx.message.author) in modlist:
-        await bot.say("Only mods can award bounties")
+        await ctx.send("Only mods can award bounties")
     elif user is None:
-        await bot.say("User is not registered in the system")
+        await ctx.send("User is not registered in the system")
     elif not amount.isdigit():
-        await bot.say("Bounty must be a positive integer")
+        await ctx.send("Bounty must be a positive integer")
     elif int(amount) > 1000:
-        await bot.say("Max bounty is 1000 RAB")
+        await ctx.send("Max bounty is 1000 RAB")
     else:
         users.update({'money': (user['money'] + int(amount))}, query.name == user['name'])
-        await bot.say("{0} has been awarded a bounty of {1} RA Bucks for {2}!".format(user['name'], int(amount), description))
+        await ctx.send("{0} has been awarded a bounty of {1} RA Bucks for {2}!".format(user['name'], int(amount), description))
 
 @bot.command(pass_context=True, brief="", description="")
 async def mint(ctx, amount):
@@ -699,14 +717,14 @@ async def mint(ctx, amount):
     user = users.get(query.name == "House")
 
     if not str(ctx.message.author) in modlist:
-        await bot.say("Only mods can award bounties")
+        await ctx.send("Only mods can award bounties")
     elif not amount.isdigit():
-        await bot.say("Bounty must be a positive integer")
+        await ctx.send("Bounty must be a positive integer")
     elif int(amount) > 10000:
-        await bot.say("Max bounty is 10000 RAB")
+        await ctx.send("Max bounty is 10000 RAB")
     else:
         users.update({'money': (user['money'] + int(amount))}, query.name == user['name'])
-        await bot.say("{0} has printed {1} RA Bucks!".format(user['name'], int(amount)))
+        await ctx.send("{0} has printed {1} RA Bucks!".format(user['name'], int(amount)))
 
 
 @bot.command(pass_context=True, brief="", description="")
@@ -715,16 +733,16 @@ async def adjust(ctx, user: discord.Member, amount):
     user = users.get(query.name == str(user))
 
     if not str(ctx.message.author) in modlist:
-        await bot.say("Only mods can adjust money")
+        await ctx.send("Only mods can adjust money")
     elif user is None:
-        await bot.say("User is not registered in the system")
+        await ctx.send("User is not registered in the system")
     elif not is_integer(amount):
-        await bot.say("The entered number is not an integer")
+        await ctx.send("The entered number is not an integer")
     elif int(amount) > 200 or int(amount) < -200:
-        await bot.say("Maximum adjustment is -200 to 200 RAB")
+        await ctx.send("Maximum adjustment is -200 to 200 RAB")
     else:
         users.update({'money': (user['money'] + int(amount))}, query.name == user['name'])
-        await bot.say("{0} has had their money adjusted by {1} from {2} to {3}".format(user['name'], int(amount), user['money'], user['money'] + int(amount)))
+        await ctx.send("{0} has had their money adjusted by {1} from {2} to {3}".format(user['name'], int(amount), user['money'], user['money'] + int(amount)))
 
 def is_integer(s):
     try:
@@ -741,22 +759,22 @@ async def overunder(ctx, userLine, amount, ou):
     if previousBets is not None and len(previousBets) > 0:
         for previousBet in previousBets:
             if previousBet['line'].lower() == userLine.lower():
-                await bot.say("You already have a previous bet on {}".format(userLine))
+                await ctx.send("You already have a previous bet on {}".format(userLine))
                 return
 
     if user is None:
-        await bot.say(str(ctx.message.author))
-        await bot.say("You are not registered")
+        await ctx.send(str(ctx.message.author))
+        await ctx.send("You are not registered")
     elif line is None:
-        await bot.say("{} is not an open line".format(userLine))
+        await ctx.send("{} is not an open line".format(userLine))
     elif str(ctx.message.author) == line['host']:
-        await bot.say("You cannot bet on your own line")
+        await ctx.send("You cannot bet on your own line")
     elif not amount.isdigit():
-        await bot.say("Your bet must be a positive integer")
+        await ctx.send("Your bet must be a positive integer")
     elif int(amount) > 1000:
-        await bot.say("The max bet is 1000 RABucks")
+        await ctx.send("The max bet is 1000 RABucks")
     elif line['locked']:
-        await bot.say("The betting is locked for {}".format(line['line']))
+        await ctx.send("The betting is locked for {}".format(line['line']))
     elif line['locktime'] is not None and datetime.utcnow() > line['locktime']:
         await lockLine(ctx, userLine)
     else:
@@ -780,7 +798,7 @@ async def overunder(ctx, userLine, amount, ou):
         embed.add_field(name="Time Placed (RA Time)", value=functions.to_time(dbBet.time))
         embed.set_footer(text="On Wisconsin")
         embed.set_author(name=line['host'])
-        await bot.say(embed=embed)
+        await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="", description="")
 async def cancel(ctx, userLine=""):
@@ -800,17 +818,17 @@ async def cancel(ctx, userLine=""):
         bet = bets.get((query.user == str(ctx.message.author)) & (query.line.matches('^' + re.escape(userLine) + '$', re.IGNORECASE)))
 
         if user is None:
-            await bot.say("You are not registered")
+            await ctx.send("You are not registered")
         elif line is None:
-            await bot.say("{} is not an open line".format(userLine))
+            await ctx.send("{} is not an open line".format(userLine))
         elif bet is None:
-            await bot.say("You do not have a bet on {}".format(line['line']))
+            await ctx.send("You do not have a bet on {}".format(line['line']))
         elif line['locked']:
-            await bot.say("The betting is locked for {}".format(line['line']))
+            await ctx.send("The betting is locked for {}".format(line['line']))
         else:
             bets.remove((query.user == str(ctx.message.author)) & (query.line.matches('^' + re.escape(userLine) + '$', re.IGNORECASE)))
 
-            await bot.say("{0} has cancelled their bet on {1}".format(str(ctx.message.author), line['line']))
+            await ctx.send("{0} has cancelled their bet on {1}".format(str(ctx.message.author), line['line']))
     else:
         emoji = get(bot.get_all_emojis(), name='nou')
         await bot.add_reaction(ctx.message, emoji)
@@ -824,13 +842,13 @@ async def rand(ctx, amount="0", picked_line_name=""):
         #amount = str(random.randint(1,101))
 
     if amount == "a positive integer":
-        await bot.say("I bet you think your pretty fuckin clever don't you? Fuck off ya cheeky twat.")
+        await ctx.send("I bet you think your pretty fuckin clever don't you? Fuck off ya cheeky twat.")
         return
     elif not amount.isdigit():
-        await bot.say("Your bet must be a positive integer. Dumb Bitch")
+        await ctx.send("Your bet must be a positive integer. Dumb Bitch")
         return
     elif int(amount) > 1000:
-        await bot.say("The max bet is 1000 RABucks")
+        await ctx.send("The max bet is 1000 RABucks")
         return
 
     # not own
@@ -851,13 +869,13 @@ async def rand(ctx, amount="0", picked_line_name=""):
         randomLine = random.choice(notMyLines)
         randomPosition = random.choice(["over", "under"])
     else:
-        await bot.say("There are no eligible lines for you to bet on")
+        await ctx.send("There are no eligible lines for you to bet on")
         return;
 
     if picked_line_name == "":
         await overunder(ctx, randomLine, amount, randomPosition)
     elif not picked_line_name.lower() in list(map(lambda x: x.lower(), notMyLines)):
-        await bot.say("{} is not an eligible line".format(picked_line_name))
+        await ctx.send("{} is not an eligible line".format(picked_line_name))
     else:
         await overunder(ctx, picked_line_name, amount, randomPosition)
 
@@ -869,7 +887,7 @@ async def autogame(ctx, favored_team, underdog, spread, over_under, locktime):
         await houseLine(ctx, "{0}{1}spread".format(favored_team, underdog), "{0} beats {1} by {2}. Line locks at {3}.".format(favored_team, underdog, spread, functions.to_time(dt)), dt)
         await houseLine(ctx, "{0}{1}OU".format(favored_team, underdog), "{0} and {1} have a combined score of {2}. Line locks at {3}.".format(favored_team, underdog, over_under, functions.to_time(dt)), dt)
     else:
-        await bot.say("Only whitelisted users can perform this action")
+        await ctx.send("Only whitelisted users can perform this action")
 
 @bot.command(pass_context=True, brief ="", description="")
 async def game(ctx, favored_team, underdog, spread, over_under):
@@ -881,7 +899,7 @@ async def game(ctx, favored_team, underdog, spread, over_under):
         await houseLine(ctx, "{0}{1}spread".format(favored_team, underdog), "{0} beats {1} by {2}. Line locks at Kickoff.".format(favored_team, underdog, spread))
         await houseLine(ctx, "{0}{1}OU".format(favored_team, underdog), "{0} and {1} have a combined score of {2}. Line locks at Kickoff.".format(favored_team, underdog, over_under))
     else:
-        await bot.say("Only whitelisted users can perform this action")
+        await ctx.send("Only whitelisted users can perform this action")
 
 @bot.command(pass_context=True, brief="", description="")
 async def over(ctx, userLine, amount):
@@ -895,37 +913,37 @@ async def under(ctx, userLine, amount):
 async def nou(ctx, user: discord.Member = None):
     if (user is None):
         emoji = get(bot.get_all_emojis(), name='nou')
-        await bot.say(emoji)
+        await ctx.send(emoji)
     elif (str(ctx.message.author) == "box_of_rockz#2813"):
-        await bot.say("Fuck Off Box")
+        await ctx.send("Fuck Off Box")
     elif (str(ctx.message.author) == "pollytheparrot#4919"):
-        await bot.say("This is not for you Polly")
+        await ctx.send("This is not for you Polly")
     elif (str(ctx.message.author) in modlist):
         emoji = get(bot.get_all_emojis(), name='nou')
-        await bot.say("{0} {1}".format(user.mention, emoji))
+        await ctx.send("{0} {1}".format(user.mention, emoji))
     elif (str(user) in modlist):
-        await bot.say("**I WILL NOT TURN ON MY MASTER**")
+        await ctx.send("**I WILL NOT TURN ON MY MASTER**")
     elif (str(ctx.message.author) == str(user)):
-        await bot.say("Fuck off")
+        await ctx.send("Fuck off")
     else:
-        await bot.say("{} No u".format(ctx.message.author.mention))
+        await ctx.send("{} No u".format(ctx.message.author.mention))
 
 @bot.command(pass_context=True, brief="", description="")
 async def pinksock(ctx):
     emoji = get(bot.get_all_emojis(), name='pinksock')
-    await bot.say(emoji)
+    await ctx.send(emoji)
 
 @bot.command(pass_context=True, brief="", description="")
 async def free(ctx):
     embed = discord.Embed()
     embed.set_image(url='https://media.giphy.com/media/5wWf7GMbT1ZUGTDdTqM/giphy.gif')
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="", description="")
 async def neat(ctx):
     embed = discord.Embed()
     embed.set_image(url='https://i.imgur.com/Y4YFthE.gif')
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="", description="")
 async def bronze(ctx):
@@ -938,7 +956,7 @@ async def RAbronze(ctx):
 async def bronzeFunc(ctx):
     embed = discord.Embed(color=0xCD7F32)
     embed.set_image(url='https://i.imgur.com/XznfKMo.png')
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="", description="")
 async def silver(ctx):
@@ -951,7 +969,7 @@ async def RAsilver(ctx):
 async def silverFunc(ctx):
     embed = discord.Embed(color=0xc0c0c0)
     embed.set_image(url='https://i.imgur.com/m1PudkI.jpg')
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="", description="")
 async def Bart(ctx):
@@ -966,25 +984,25 @@ async def bart_meme_func(ctx):
     meme_list = memes.all()
     random.shuffle(meme_list)
     embed.set_image(url=meme_list[0]['link'])
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="", description="")
 async def ask(ctx, *, question):
     answer_list = eightball.all()
     random.shuffle(answer_list)
-    await bot.say(answer_list[0]['response'])
+    await ctx.send(answer_list[0]['response'])
 
 @bot.command(pass_context=True, brief="Information about the Open Source Repo", description="Shows information about The Don bot and links to the repo location", aliases = ["git", "github", "opensource", "openSource"])
 async def contribute(ctx):
     await contributeFunc(ctx)
 
 async def contributeFunc(ctx):
-    await bot.say("The Don is now Open source\r\nhttps://github.com/ArtificialBadger/TheDon")
+    await ctx.send("The Don is now Open source\r\nhttps://github.com/ArtificialBadger/TheDon")
 
 @bot.command(pass_context=True, brief="", description="")
 async def zoopking(ctx):
 
-    message = await bot.say(':point_up: :sunglasses: :point_up:')
+    message = await ctx.send(':point_up: :sunglasses: :point_up:')
 
     for x in range(5):
 
@@ -1005,7 +1023,7 @@ async def zoopking(ctx):
 @bot.command(pass_context=True, brief="", description="")
 async def zoopsalute(ctx):
 
-    message = await bot.say(':point_up: :sunglasses: :point_up: :point_up: :sunglasses: :point_up:')
+    message = await ctx.send(':point_up: :sunglasses: :point_up: :point_up: :sunglasses: :point_up:')
 
     for x in range(5):
 
@@ -1027,38 +1045,38 @@ async def zoopsalute(ctx):
 
 @bot.command(pass_context=True, brief="", description="")
 async def zoop(ctx):
-    await bot.say(':point_left: :sunglasses: :point_left:')
+    await ctx.send(':point_left: :sunglasses: :point_left:')
 
 
 @bot.command(pass_context=True, brief="", description="")
 async def pooz(ctx):
-    await bot.say(':point_right: :sunglasses: :point_right:')
+    await ctx.send(':point_right: :sunglasses: :point_right:')
 
 @bot.command(pass_context=True, brief="", description="")
 async def frank(ctx):
     emoji = get(bot.get_all_emojis(), name='bigfrank')
-    await bot.say(emoji)
+    await ctx.send(emoji)
 
 @bot.command(pass_context=True, brief="", description="")
 async def bigfrank(ctx):
     embed = discord.Embed()
     embed.set_image(url='https://i.imgur.com/N5bjEMl.png')
-    await bot.say(embed=embed)
+    await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="Checks the bots status")
 async def health(ctx):
-    await bot.say("Up and Running! " + str(instance_id))
+    await ctx.send("Up and Running! " + str(instance_id))
 
 @bot.command(pass_context=True, brief="Stops an instance of the bot if with the given ID")
 async def stop(ctx, kill_id):
     if (str(ctx.message.author) in modlist):
         if kill_id == str(instance_id):
-            await bot.say("Stopping Don with ID " + str(instance_id))
+            await ctx.send("Stopping Don with ID " + str(instance_id))
             await bot.logout()
         else:
-            await bot.say("Not stopping Don with ID " + str(instance_id))
+            await ctx.send("Not stopping Don with ID " + str(instance_id))
     else:
-        await bot.say("Only mods can stop The Don bot")
+        await ctx.send("Only mods can stop The Don bot")
 
 print("start")
 bot.run(app_secret)
