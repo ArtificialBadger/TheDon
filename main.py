@@ -80,19 +80,23 @@ async def on_message(message):
 async def mimic(ctx):
     megastring = ""
     count = 0
-    async for message in ctx.history(limit=2000, oldest_first=False):
+    async for message in ctx.history(limit=5000, oldest_first=False):
         if str(message.author) == str(ctx.message.author) and not message.content == "" and not message.author.bot:
-            megastring += "\r\n" + message.content
-            count += 1
-
-    chain = markovify.Text(megastring)
-    sentence = chain.make_short_sentence(max_chars=150, test_output = False)
-    #await ctx.send("Count: " + str(count))
-    if sentence is None:
+            if (not "$" in message.content):
+                megastring += "\r\n" + message.content
+                count += 1
+    if len(megastring) <10:
+        await ctx.send("No can do buckaroo Count: " + str(count) + megastring)
+    try:
+        chain = markovify.Text(megastring)
+        sentence = chain.make_short_sentence(max_chars=100, max_overlap_ratio=.8)
+        #await ctx.send("Count: " + str(count))
+        if sentence is None:
+            raise Exception('Fuck')
+        else:
+            await ctx.send(sentence)
+    except:
         await ctx.send("No can do buckaroo")
-    else:
-        await ctx.send(sentence)
-
 
 @bot.command(pass_context=True)
 async def meme(ctx, meme_name, image_link):
