@@ -55,17 +55,41 @@ historical_lines = TinyDB('pastLines.json', storage=serialization4)
 memes = TinyDB('memes.json')
 eightball = TinyDB('8ball.json')
 
+last_error_count = 0
+last_error_user = ''
+
 query = Query()
 
 @bot.event
 async def on_ready():
     print("ready")
     #await bot.send_message(discord.Object(id='490306602545446932'), 'Up and running!')
-#@bot.event
-#async def on_error(a, b):
-#    print(str(a))
-#    print(str(b))
-    #await b.channel.send("U wot m8?")
+
+@bot.event
+async def on_command_error(ctx, error):
+    global last_error_count
+    global last_error_user
+
+    author = str(ctx.message.author)
+
+    if author == last_error_user:
+        last_error_count += 1
+    else:
+        last_error_user = author
+        last_error_count = 0
+
+    if last_error_count == 2:
+        await ctx.send("OK {0} you can fuck off now".format(ctx.message.author.mention))
+    elif last_error_count == 3:
+        await ctx.send("Don't make me get nasty")
+    elif last_error_count == 4:
+        await ctx.send("Do it one more time you rancid fuck")
+    elif last_error_count == 5:
+        await ctx.send("{0} has been added to the blacklist".format(ctx.message.author.mention))
+    elif last_error_count > 5:
+        await ctx.send("{0} has been docked 100 RAB".format(ctx.message.author.mention))
+    else:
+        await ctx.send("I have no fucking idea what you want me to do")
 
 @bot.event
 async def on_message(message):
@@ -1109,4 +1133,3 @@ async def stop(ctx, kill_id):
 print("start")
 bot.run(app_secret)
 print("stop")
-
