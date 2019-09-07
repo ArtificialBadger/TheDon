@@ -20,10 +20,10 @@ import sys
 import requests
 import json
 import uuid
-import markovify
 from models import Line, User, Bet, HistoricalLine, HistoricalBet, Meme, Answer
 from betting import Betting
 from eightball import EightBall
+from mimic import Mimic
 sys.setrecursionlimit(100000)
 
 instance_id = uuid.uuid1()
@@ -35,6 +35,7 @@ app_secret = Config.app_secret
 bot = commands.Bot(command_prefix='$')
 bot.add_cog(Betting(bot))
 bot.add_cog(EightBall(bot))
+bot.add_cog(Mimic(bot))
 
 serialization = SerializationMiddleware()
 serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
@@ -105,52 +106,6 @@ async def on_message(message):
     await bot.process_commands(message)
 
 @bot.command(pass_context=True)
-async def mimic(ctx):
-    megastring = ""
-    count = 0
-    async for message in ctx.history(limit=5000, oldest_first=False):
-        if str(message.author) == str(ctx.message.author) and not message.content == "" and not message.author.bot:
-            if (not "$" in message.content):
-                megastring += ". " + message.content
-                count += 1
-    if len(megastring) < 10:
-        await ctx.send("No can do buckaroo Count: " + str(count) + megastring)
-    try:
-        chain = markovify.Text(megastring)
-        sentence = chain.make_short_sentence(max_chars=64, max_overlap_ratio=.95)
-        #await ctx.send("Count: " + str(count))
-        if sentence is None:
-            raise Exception('Fuck')
-        else:
-            await ctx.send(sentence)
-    except:
-        #await ctx.send(megastring)
-        await ctx.send("No can do buckaroo")
-
-@bot.command(pass_context=True)
-async def mimic2(ctx):
-    megastring = ""
-    count = 0
-    async for message in ctx.history(limit=5000, oldest_first=False):
-        if str(message.author) == str(ctx.message.author) and not message.content == "" and not message.author.bot:
-            if (not "$" in message.content):
-                megastring += "\r\n" + message.content
-                count += 1
-    if len(megastring) < 10:
-        await ctx.send("No can do buckaroo Count: " + str(count) + megastring)
-    try:
-        chain = markovify.NewlineText(megastring)
-        sentence = chain.make_short_sentence(max_chars=100, max_overlap_ratio=.95)
-        #await ctx.send("Count: " + str(count))
-        if sentence is None:
-            raise Exception('Fuck')
-        else:
-            await ctx.send(sentence)
-    except:
-        #await ctx.send(megastring)
-        await ctx.send("No can do buckaroo")
-
-@bot.command(pass_context=True)
 async def meme(ctx, meme_name, image_link):
     current_meme_list = memes.search(query.name == meme_name)
     if len(current_meme_list) > 0:
@@ -163,7 +118,6 @@ async def meme(ctx, meme_name, image_link):
 async def unmeme(ctx, meme_name):
     memes.remove(query.name == meme_name)
     await ctx.send("Killed the meme dream!")
-
 
 @bot.command(pass_context=True)
 async def allbart(ctx):
