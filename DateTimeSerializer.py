@@ -1,7 +1,8 @@
 from datetime import datetime
 from tinydb_serialization import Serializer
 
-class date_time_serializer(Serializer):
+
+class DateTimeSerializer(Serializer):
     OBJ_CLASS = datetime  # The class this serializer handles
 
     def encode(self, obj):

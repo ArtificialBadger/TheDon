@@ -22,7 +22,7 @@ import json
 import uuid
 import markovify
 from models import Line, User, Bet, HistoricalLine, HistoricalBet, Meme, Answer
-
+from betting import Betting
 sys.setrecursionlimit(100000)
 
 instance_id = uuid.uuid1()
@@ -32,6 +32,7 @@ whitelist = Config.whitelist
 app_secret = Config.app_secret
 
 bot = commands.Bot(command_prefix='$')
+bot.add_cog(Betting(bot))
 
 serialization = SerializationMiddleware()
 serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
@@ -53,7 +54,6 @@ historical_bets = TinyDB('pastBets.json', storage=serialization3)
 historical_lines = TinyDB('pastLines.json', storage=serialization4)
 
 memes = TinyDB('memes.json')
-eightball = TinyDB('8ball.json')
 
 last_error_count = 0
 last_error_user = ''
@@ -156,15 +156,6 @@ async def meme(ctx, meme_name, image_link):
     else:
         memes.insert(vars(Meme(str(ctx.message.author), meme_name, image_link)))
         await ctx.send("Registered new meme!");
-
-@bot.command(pass_context=True)
-async def respond(ctx, *, response):
-    current_answer_list = eightball.search(query.name == response)
-    if len(current_answer_list) > 0:
-        await ctx.send("Thats already a response");
-    else:
-        eightball.insert(vars(Answer(response)))
-        await ctx.send("Registered new response!");
 
 @bot.command(pass_context=True)
 async def unmeme(ctx, meme_name):
