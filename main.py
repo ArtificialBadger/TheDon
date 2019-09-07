@@ -23,6 +23,7 @@ import uuid
 import markovify
 from models import Line, User, Bet, HistoricalLine, HistoricalBet, Meme, Answer
 from betting import Betting
+from eightball import EightBall
 sys.setrecursionlimit(100000)
 
 instance_id = uuid.uuid1()
@@ -33,6 +34,7 @@ app_secret = Config.app_secret
 
 bot = commands.Bot(command_prefix='$')
 bot.add_cog(Betting(bot))
+bot.add_cog(EightBall(bot))
 
 serialization = SerializationMiddleware()
 serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
@@ -162,10 +164,6 @@ async def unmeme(ctx, meme_name):
     memes.remove(query.name == meme_name)
     await ctx.send("Killed the meme dream!")
 
-@bot.command(pass_context=True)
-async def unrespond(ctx, *, response):
-    eightball.remove(query.response == response)
-    await ctx.send("Removed that ish")
 
 @bot.command(pass_context=True)
 async def allbart(ctx):
@@ -1041,12 +1039,6 @@ async def bart_meme_func(ctx):
     random.shuffle(meme_list)
     embed.set_image(url=meme_list[0]['link'])
     await ctx.send(embed=embed)
-
-@bot.command(pass_context=True, brief="", description="")
-async def ask(ctx, *, question):
-    answer_list = eightball.all()
-    random.shuffle(answer_list)
-    await ctx.send(answer_list[0]['response'])
 
 @bot.command(pass_context=True, brief="Information about the Open Source Repo", description="Shows information about The Don bot and links to the repo location", aliases = ["git", "github", "opensource", "openSource"])
 async def contribute(ctx):

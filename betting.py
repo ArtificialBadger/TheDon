@@ -11,4 +11,4 @@ class Betting(commands.Cog):
 
     @commands.command()
     async def hello(self, ctx, *, member: discord.Member = None):
-        await ctx.send('Hello from a Cog')
+        await ctx.send('Hello from the Betting Cog')
