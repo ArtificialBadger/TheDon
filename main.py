@@ -1,17 +1,21 @@
 #!/usr/bin/python3.6
 import discord
 from discord.ext import commands
+from discord.ext.commands import Bot
 import asyncio
 from tinydb import TinyDB, Query, where
 from discord.utils import get
+from tinydb.operations import delete
 import random
 import functions
 import re
-from config import Config
+import importlib
+import Config
 from dateutil import parser
-from date_time_serializer import date_time_serializer
-from datetime import datetime
-from tinydb_serialization import SerializationMiddleware
+from DateTimeSerializer import DateTimeSerializer
+from datetime import datetime, date
+from tinydb_serialization import Serializer, SerializationMiddleware
+from pytz import timezone
 import sys
 import requests
 import json
@@ -30,26 +34,26 @@ app_secret = Config.app_secret
 bot = commands.Bot(command_prefix='$')
 
 serialization = SerializationMiddleware()
-serialization.register_serializer(date_time_serializer(), 'TinyDate')
+serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
 
 serialization2 = SerializationMiddleware()
-serialization2.register_serializer(date_time_serializer(), 'TinyDate')
+serialization2.register_serializer(DateTimeSerializer(), 'TinyDate')
 
 serialization3 = SerializationMiddleware()
-serialization3.register_serializer(date_time_serializer(), 'TinyDate')
+serialization3.register_serializer(DateTimeSerializer(), 'TinyDate')
 
 serialization4 = SerializationMiddleware()
-serialization4.register_serializer(date_time_serializer(), 'TinyDate')
+serialization4.register_serializer(DateTimeSerializer(), 'TinyDate')
 
-users = TinyDB('data/users.json')
-bets = TinyDB('data/bets.json', storage=serialization)
-lines = TinyDB('data/lines.json', storage=serialization2)
+users = TinyDB('users.json')
+bets = TinyDB('bets.json', storage=serialization)
+lines = TinyDB('lines.json', storage=serialization2)
 
-historical_bets = TinyDB('data/pastBets.json', storage=serialization3)
-historical_lines = TinyDB('data/pastLines.json', storage=serialization4)
+historical_bets = TinyDB('pastBets.json', storage=serialization3)
+historical_lines = TinyDB('pastLines.json', storage=serialization4)
 
-memes = TinyDB('data/memes.json')
-eightball = TinyDB('data/8ball.json')
+memes = TinyDB('memes.json')
+eightball = TinyDB('8ball.json')
 
 last_error_count = 0
 last_error_user = ''
@@ -61,8 +65,9 @@ async def on_ready():
     print("ready")
     #await bot.send_message(discord.Object(id='490306602545446932'), 'Up and running!')
 
-@bot.event
-async def on_command_error(ctx, error):
+#@bot.event
+#async def on_command_error(ctx, error):
+async def thing(ctx, error):
     global last_error_count
     global last_error_user
 
@@ -75,24 +80,25 @@ async def on_command_error(ctx, error):
         last_error_count = 0
 
     if last_error_count == 2:
-        await ctx.send("OK {0} you can back off now".format(ctx.message.author.mention))
+        await ctx.send("OK {0} you can fuck off now".format(ctx.message.author.mention))
     elif last_error_count == 3:
         await ctx.send("Don't make me get nasty")
     elif last_error_count == 4:
-        await ctx.send("Do it one more time you poo poo head")
+        await ctx.send("Do it one more time you rancid fuck")
     elif last_error_count == 5:
         await ctx.send("{0} has been added to the blacklist".format(ctx.message.author.mention))
     elif last_error_count > 5:
         await ctx.send("{0} has been docked 100 RAB".format(ctx.message.author.mention))
     else:
-        await ctx.send("I have no idea what you want me to do")
+        await ctx.send("I have no fucking idea what you want me to do")
 
 @bot.event
 async def on_message(message):
     if not message.author.bot and "lamar" in message.content.lower():
         llamaString = message.content.replace('Lamar', 'Llama')
         newString = re.compile("lamar", re.IGNORECASE)
-        await bot.send_message(message.channel, newString.sub('llama', llamaString))
+        print(message)
+        await message.channel.send(newString.sub('llama', llamaString))
 
     await bot.process_commands(message)
 
@@ -131,7 +137,7 @@ async def mimic2(ctx):
     if len(megastring) < 10:
         await ctx.send("No can do buckaroo Count: " + str(count) + megastring)
     try:
-        chain = markovify.Text(megastring)
+        chain = markovify.NewlineText(megastring)
         sentence = chain.make_short_sentence(max_chars=100, max_overlap_ratio=.95)
         #await ctx.send("Count: " + str(count))
         if sentence is None:
@@ -178,9 +184,7 @@ async def allbart(ctx):
     embed.add_field(name="Number of Bart Memes", value=memetext)
     await ctx.send(embed=embed)
 
-@bot.command(pass_context=True, aliases = ["imalittlebitch", "IAmALittleBitch", "iamalittlebitch"], brief="Sets a user up with {0} {1}".format(
-    Config.starting_amount, Config.currency_code), description="Initializes a user with {0} {1} and allows them to begin placing bets. All users need to call this function before being able to place bets or open lines.".format(
-    Config.starting_amount, Config.currency))
+@bot.command(pass_context=True, aliases = ["imalittlebitch", "IAmALittleBitch", "iamalittlebitch"], brief="Sets a user up with {0} {1}".format(Config.starting_amount, Config.currency_code), description="Initializes a user with {0} {1} and allows them to begin placing bets. All users need to call this function before being able to place bets or open lines.".format(Config.starting_amount, Config.currency))
 async def ImALittleBitch(ctx):
     accounts = users.search(query.name == str(ctx.message.author))
     if len(accounts) > 0:
@@ -189,8 +193,7 @@ async def ImALittleBitch(ctx):
         users.insert(vars(User(str(ctx.message.author), Config.starting_amount)))
         await ctx.send("{0} has been given {1} {2}".format(str(ctx.message.author), Config.starting_amount, Config.currency))
 
-@bot.command(pass_context=True, brief="Shows the leaders in order of {0}".format(Config.currency), description="Displays a full ordering of users, ordered by {0}".format(
-    Config.currency))
+@bot.command(pass_context=True, brief="Shows the leaders in order of {0}".format(Config.currency), description="Displays a full ordering of users, ordered by {0}".format(Config.currency))
 async def leaderboard(ctx):
     orderedUsers = []
     for user in users.all():
@@ -207,8 +210,7 @@ async def leaderboard(ctx):
         embed.add_field(name=user2.name, value=user2.money)
     await ctx.send(embed=embed)
 
-@bot.command(pass_context=True, brief="Shows the callers {0}".format(Config.currency), description="Shows the amount of {0} of the command invoker".format(
-    Config.currency))
+@bot.command(pass_context=True, brief="Shows the callers {0}".format(Config.currency), description="Shows the amount of {0} of the command invoker".format(Config.currency))
 async def money(ctx):
     user = users.get(query.name == str(ctx.message.author))
     if user is not None:
@@ -501,8 +503,7 @@ async def resolveLine(ctx, line, result, owner, description=""):
     historical_lines.insert(vars(historical_line))
 
 
-@bot.command(pass_context=True, brief="Resolves an open line", description="Resolves an open line. Can be resolved either over, under, or wash.\r\nWinners are given an amount of {0} to their wager, losers are deducted an amount of {0} equal to their wager.\r\nMoney is granted to the line opener during resolution.\r\nNo money is given or taken in the case of a wash".format(
-    Config.currency))
+@bot.command(pass_context=True, brief="Resolves an open line", description="Resolves an open line. Can be resolved either over, under, or wash.\r\nWinners are given an amount of {0} to their wager, losers are deducted an amount of {0} equal to their wager.\r\nMoney is granted to the line opener during resolution.\r\nNo money is given or taken in the case of a wash".format(Config.currency))
 async def resolve(ctx, bet, result="", *, description=""):
     await resolveFunc(ctx, bet, result, description)
 
@@ -569,6 +570,9 @@ async def myBetsFunc(ctx):
 
     await ctx.send(embed=embed)
 
+def getlocktime(x):
+    return x['locktime'] or datetime(year = 3000, month = 1, day = 1)
+
 async def myLinesFunc(ctx):
     myBets = bets.search(query.user == str(ctx.message.author))
     myOwnedLines = lines.search(query.host == str(ctx.message.author))
@@ -576,7 +580,9 @@ async def myLinesFunc(ctx):
     lockedLines = list(map(lambda x: x['line'].lower(), lines.search(query.locked == True)))
     myLines = list(map(lambda x: x['line'].lower(), myBets))
     ownedLines = list(map(lambda x: x['line'].lower(), myOwnedLines))
-    allLines = list(map(lambda x: x['line'], lines.all()))
+    allLines = list(
+        map(lambda x: x['line'], sorted(lines.all(), key=getlocktime))
+        )
 
     notMyLines = []
 
@@ -965,7 +971,7 @@ async def under(ctx, userLine, amount):
 @bot.command(pass_context=True, brief="", description="")
 async def nou(ctx, user: discord.Member = None):
     if (user is None):
-        emoji = get(bot.get_all_emojis(), name='nou')
+        emoji = bot.get_emoji(484065982025826304)
         await ctx.send(emoji)
     elif (str(ctx.message.author) == "box_of_rockz#2813"):
         await ctx.send("Fuck Off Box")
@@ -1009,6 +1015,12 @@ async def RAbronze(ctx):
 async def bronzeFunc(ctx):
     embed = discord.Embed(color=0xCD7F32)
     embed.set_image(url='https://i.imgur.com/XznfKMo.png')
+    await ctx.send(embed=embed)
+
+@bot.command(pass_context=True, brief="", description="")
+async def moron(ctx):
+    embed = discord.Embed(color=0xc0c0c0)
+    embed.set_image(url='https://cdn.discordapp.com/attachments/464871290595966996/615010318707326994/image0.jpg')
     await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="", description="")
