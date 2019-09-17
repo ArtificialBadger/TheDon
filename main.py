@@ -1031,16 +1031,16 @@ async def zoopsalute(ctx):
         await asyncio.sleep(.25)
 
         if x % 4 == 0:
-            await bot.edit_message(message, ':point_right: :sunglasses: :point_right: :point_left: :sunglasses: :point_left:')
+            await message.edit(content=':point_right: :sunglasses: :point_right: :point_left: :sunglasses: :point_left:')
 
         elif x % 4 == 1:
-            await bot.edit_message(message, ':point_down: :sunglasses: :point_down: :point_down: :sunglasses: :point_down:')
+            await message.edit(content=':point_down: :sunglasses: :point_down: :point_down: :sunglasses: :point_down:')
 
         elif x % 4 == 2:
-            await bot.edit_message(message, ':point_left: :sunglasses: :point_left: :point_right: :sunglasses: :point_right:')
+            await message.edit(content=':point_left: :sunglasses: :point_left: :point_right: :sunglasses: :point_right:')
 
         elif x % 4 == 3:
-            await bot.edit_message(message, ':point_up: :sunglasses: :point_up: :point_up: :sunglasses: :point_up:')
+            await message.edit(content=':point_up: :sunglasses: :point_up: :point_up: :sunglasses: :point_up:')
 
 
 
