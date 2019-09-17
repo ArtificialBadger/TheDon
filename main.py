@@ -163,6 +163,12 @@ async def money(ctx):
 async def boxwagon(ctx):
     await ctx.send(functions.random_team())
 
+@bot.command(brief="heck", alias=['heck'])
+async def dale(ctx):
+    embed = discord.Embed(color=0xc0c0c0)
+    embed.set_image(url='https://media.tenor.com/images/b650be0d3e46da3f24a771a3725cf360/tenor.gif')
+    await ctx.send(embed=embed)
+
 @bot.command(pass_context=True, brief="Purges all the data", description="Very dangerous command\r\nOnly invokeable by mods with the allow_puges flag set to true")
 async def purgeAll(ctx):
     if Config.allow_purges:
@@ -968,13 +974,6 @@ async def moron(ctx):
 
 @bot.command(pass_context=True, brief="", description="")
 async def silver(ctx):
-    await silverFunc(ctx)
-
-@bot.command(pass_context=True, brief="", description="")
-async def RAsilver(ctx):
-    await silverFunc(ctx)
-
-async def silverFunc(ctx):
     embed = discord.Embed(color=0xc0c0c0)
     embed.set_image(url='https://i.imgur.com/m1PudkI.jpg')
     await ctx.send(embed=embed)
@@ -1011,16 +1010,16 @@ async def zoopking(ctx):
         await asyncio.sleep(.25)
 
         if x % 4 == 0:
-            await bot.edit_message(message, ':point_left: :sunglasses: :point_left:')
+            await message.edit(content=':point_left: :sunglasses: :point_left:')
 
         elif x % 4 == 1:
-            await bot.edit_message(message, ':point_down: :sunglasses: :point_down:')
+            await message.edit(content=':point_down: :sunglasses: :point_down:')
 
         elif x % 4 == 2:
-            await bot.edit_message(message, ':point_right: :sunglasses: :point_right:')
+            await message.edit(content=':point_right: :sunglasses: :point_right:')
 
         elif x % 4 == 3:
-            await bot.edit_message(message, ':point_up: :sunglasses: :point_up:')
+            await message.edit(content=':point_up: :sunglasses: :point_up:')
 
 @bot.command(pass_context=True, brief="", description="")
 async def zoopsalute(ctx):
