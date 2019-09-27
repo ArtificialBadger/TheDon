@@ -746,8 +746,8 @@ async def adjust(ctx, user: discord.Member, amount):
         await ctx.send("User is not registered in the system")
     elif not is_integer(amount):
         await ctx.send("The entered number is not an integer")
-    elif int(amount) > 200 or int(amount) < -200:
-        await ctx.send("Maximum adjustment is -200 to 200 RAB")
+    elif int(amount) > 2000 or int(amount) < -2000:
+        await ctx.send("Maximum adjustment is -2000 to 2000 RAB")
     else:
         users.update({'money': (user['money'] + int(amount))}, query.name == user['name'])
         await ctx.send("{0} has had their money adjusted by {1} from {2} to {3}".format(user['name'], int(amount), user['money'], user['money'] + int(amount)))
