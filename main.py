@@ -759,7 +759,7 @@ def is_integer(s):
     except ValueError:
         return False
 
-async def overunder(ctx, userLine, amount, ou):
+async def overunder(ctx, userLine, amount, ou, silent = False):
     line = lines.get(query.line.matches('^' + re.escape(userLine) + '$', re.IGNORECASE))
     user = users.get(query.name == str(ctx.message.author))
     previousBets = bets.search((query.user == str(ctx.message.author)))
@@ -770,20 +770,20 @@ async def overunder(ctx, userLine, amount, ou):
                 await ctx.send("You already have a previous bet on {}".format(userLine))
                 return
 
-    if user is None:
+    if user is None and not silent:
         await ctx.send(str(ctx.message.author))
         await ctx.send("You are not registered")
-    elif line is None:
+    elif line is None and not silent:
         await ctx.send("{} is not an open line".format(userLine))
-    elif str(ctx.message.author) == line['host']:
+    elif str(ctx.message.author) == line['host'] and not silent:
         await ctx.send("You cannot bet on your own line")
-    elif not amount.isdigit():
+    elif not amount.isdigit() and not silent:
         await ctx.send("Your bet must be a positive integer")
-    elif int(amount) > 1000:
+    elif int(amount) > 1000 and not silent:
         await ctx.send("The max bet is 1000 RABucks")
-    elif line['locked']:
+    elif line['locked'] and not silent:
         await ctx.send("The betting is locked for {}".format(line['line']))
-    elif line['locktime'] is not None and datetime.utcnow() > line['locktime']:
+    elif line['locktime'] is not None and datetime.utcnow() > line['locktime'] and not silent:
         await lockLine(ctx, userLine)
     else:
         house = users.get(query.name == "House")
@@ -806,7 +806,8 @@ async def overunder(ctx, userLine, amount, ou):
         embed.add_field(name="Time Placed (RA Time)", value=functions.to_time(dbBet.time))
         embed.set_footer(text="On Wisconsin")
         embed.set_author(name=line['host'])
-        await ctx.send(embed=embed)
+        if not silent:
+            await ctx.send(embed=embed)
 
 @bot.command(pass_context=True, brief="", description="")
 async def cancel(ctx, userLine=""):
@@ -886,6 +887,38 @@ async def rand(ctx, amount="0", picked_line_name=""):
         await ctx.send("{} is not an eligible line".format(picked_line_name))
     else:
         await overunder(ctx, picked_line_name, amount, randomPosition)
+
+@bot.command(pass_context=True, aliases = ["RandAll", "randAll", "box"], brief="", description="")
+async def randall(ctx, amount="0"):
+
+    if amount == "0":
+        amount = str(random.randint(1,1001))
+
+    if amount == "a positive integer":
+        await ctx.send("I bet you think your pretty fuckin clever don't you? Fuck off ya cheeky twat.")
+        return
+    elif not amount.isdigit():
+        await ctx.send("Your bet must be a positive integer. Dumb Bitch")
+        return
+    elif int(amount) > 1000:
+        await ctx.send("The max bet is 1000 RABucks")
+        return
+
+    myBets = bets.search(query.user == str(ctx.message.author))
+    myLines = list(map(lambda x: x['line'].lower(), myBets))
+    allLines = list(map(lambda x: x['line'], lines.search((query.locked == False) & (query.host != str(ctx.message.author)))))
+
+    notMyLines = []
+
+    for line in allLines:
+        if not line.lower() in myLines:
+            notMyLines.append(line)
+
+    for randomLine in notMyLines:
+        randomPosition = random.choice(["over", "under"])
+        await overunder(ctx, randomLine, amount, randomPosition, True)
+
+    await myLinesFunc(ctx)
 
 @bot.command(pass_context=True, brief ="", description="")
 async def autogame(ctx, favored_team, underdog, spread, over_under, locktime):
